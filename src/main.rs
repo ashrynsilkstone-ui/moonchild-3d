@@ -71,7 +71,7 @@ fn pbr(
     })
 }
 fn glow(materials: &mut Assets<StandardMaterial>, r: f32, g: f32, b: f32) -> Handle<StandardMaterial> {
-    materials.add(StandardMaterial { base_color: Color::srgb(r.min(1.0),g.min(1.0),b.min(1.0)), emissive: LinearRgba::rgb(r*9.0,g*9.0,b*9.0), unlit: true, ..default() })
+    materials.add(StandardMaterial { base_color: Color::srgb(r.min(1.0),g.min(1.0),b.min(1.0)), emissive: LinearRgba::rgb(r*9.0,g*9.0,b*9.0), unlit: false, ..default() })
 }
 fn block(cmd: &mut Commands, meshes: &mut Assets<Mesh>, material: Handle<StandardMaterial>, pos: Vec3, size: Vec3) {
     let mut mesh: Mesh = Cuboid::new(size.x,size.y,size.z).into();
@@ -148,7 +148,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     // LED tiles, individually animated via material emissive color.
     for col in 0..20 {
         for row in 0..6 {
-            let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(2.0,0.1,3.0), unlit: true, ..default() });
+            let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(2.0,0.1,3.0), unlit: false, ..default() });
             commands.spawn((Mesh3d(meshes.add(Cuboid::new(0.49,0.49,0.07))), MeshMaterial3d(material),
                 Transform::from_xyz((col as f32-9.5)*0.53, 3.15+row as f32*0.54,-9.76), Led { index: col*6+row }));
         }
