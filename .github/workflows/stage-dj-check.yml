@@ -1,0 +1,20 @@
+name: Stage and DJ equipment checks
+on: [push, workflow_dispatch]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      RUSTFLAGS: -C link-arg=-fuse-ld=lld
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux development dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev lld
+      - name: Check build
+        run: cargo check
+      - name: Test stage and gallery navigation
+        run: cargo test
+      - name: Build executable
+        run: cargo build

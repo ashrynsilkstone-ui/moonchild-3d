@@ -1,6 +1,7 @@
 //! Moonchild 3D v0.1 - fully procedural, no paid assets.
 mod club_section;
 mod navigation;
+mod dj_gear;
 
 use std::f32::consts::PI;
 use bevy::{
@@ -22,7 +23,7 @@ impl Default for Show {
     fn default() -> Self { Self { mode: 0, speed: 1.0, enabled: true, beat: 130.0 } }
 }
 #[derive(Component)]
-struct Player { yaw: f32, pitch: f32 }
+struct Player { yaw: f32, pitch: f32, motion: navigation::Motion }
 #[derive(Component)]
 struct MovingHead { index: usize }
 #[derive(Component)]
@@ -134,11 +135,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     commands.spawn((Mesh3d(meshes.add(booth_mesh)), MeshMaterial3d(dark.clone()),
         Transform::from_xyz(0.0,1.54,-8.0).with_rotation(Quat::from_rotation_z(PI / 2.0))));
     block(&mut commands,&mut meshes,cyan.clone(),Vec3::new(0.0,1.1,-7.43),Vec3::new(6.9,0.09,0.08));
-    for &x in &[-2.05,2.05] {
-        block(&mut commands,&mut meshes,metal.clone(),Vec3::new(x,2.17,-7.63),Vec3::new(1.55,0.13,0.64));
-        block(&mut commands,&mut meshes,blue.clone(),Vec3::new(x,2.25,-7.63),Vec3::new(0.8,0.03,0.40));
-    }
-    block(&mut commands,&mut meshes,metal.clone(),Vec3::new(0.0,2.19,-7.63),Vec3::new(1.1,0.16,0.75));
+    dj_gear::spawn(&mut commands, &mut meshes, &mut materials, &asset_server);
     for &x in &[-6.2,-5.25,5.25,6.2] {
         for y in 0..2 {
             block(&mut commands,&mut meshes,dark.clone(),Vec3::new(x,1.75+y as f32*1.12,-8.50),Vec3::new(0.83,1.02,0.78));
@@ -227,10 +224,10 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     // Camera starts at entrance looking toward DJ stage (-Z).
     commands.spawn((Camera3d::default(), Hdr, Bloom::NATURAL,
         Transform::from_xyz(0.0,1.78,7.5).looking_at(Vec3::new(0.0,2.5,-7.0),Vec3::Y),
-        Player { yaw: 0.0, pitch: 0.045 }));
+        Player { yaw: 0.0, pitch: 0.045, motion: navigation::Motion::standing() }));
     // Overlay and instructions.
     commands.spawn((
-        Text::new("MOONCHILD  |  3D CLUB   •   WASD bewegen  •  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe   |   L Licht an/aus   |   +/- Tempo  |  ESC schließen"),
+        Text::new("MOONCHILD  |  3D CLUB   •   WASD bewegen  •  Leertaste springen  •  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe   |   L Licht an/aus   |   +/- Tempo  |  ESC schließen"),
         TextFont { font_size: FontSize::Px(17.0), ..default() },
         TextColor(Color::srgb(0.87,0.91,1.0)),
         Node { position_type: PositionType::Absolute, top: px(16), left: px(18), ..default() },
@@ -260,10 +257,9 @@ fn walk(keys: Res<ButtonInput<KeyCode>>, mouse: Res<ButtonInput<MouseButton>>,
     if keys.pressed(KeyCode::KeyD) { direction+=right; }
     if keys.pressed(KeyCode::KeyA) { direction-=right; }
     let speed = if keys.pressed(KeyCode::ShiftLeft) { 9.0 } else { 4.7 };
-    if direction.length_squared()>0.0 {
-        let movement = direction.normalize() * speed * time.delta_secs().min(0.1);
-        t.translation = navigation::walk_position(t.translation, movement);
-    }
+    let dt = time.delta_secs().min(0.1);
+    let movement = direction.normalize_or_zero() * speed * dt;
+    t.translation = navigation::advance(t.translation, movement, keys.just_pressed(KeyCode::Space), dt, &mut p.motion);
 }
 fn controls(keys: Res<ButtonInput<KeyCode>>, mut show: ResMut<Show>, mut exit: MessageWriter<AppExit>) {
     if keys.just_pressed(KeyCode::Digit1) { show.mode=0; }

@@ -20,6 +20,7 @@ Die Paketnamen und Treiber bitte bei Bedarf an die eigene Installation anpassen.
 |---|---|
 | W A S D | Gehen, links hinten über die Treppe zur Galerie |
 | Shift | Schneller gehen |
+| Leertaste | Springen, beispielsweise auf die Bühne |
 | Rechte Maustaste gedrückt + Maus | Umsehen |
 | 1 / 2 / 3 | Neon / Rave / Chill |
 | 4 | Strobe (nur manuell aktiv) |
@@ -29,11 +30,13 @@ Die Paketnamen und Treiber bitte bei Bedarf an die eigene Installation anpassen.
 
 ## Club und Materialien
 
+Die DJ-Bühne ist 0,96 m hoch und per Sprung erreichbar. Springen und Landen berücksichtigen Bühnenkante, Galerieunterseite und einfache Hindernisse. Die Controller bestehen aus zwei Media-Playern und einem Vierkanal-Mixer mit eigenen Texturdateien sowie räumlichen Jogwheel-Ringen, Reglern und Faderkappen. Die Bedienelemente und Bildschirmgrafiken sind derzeit rein visuell und steuern keine Musik.
+
 Der erste ausgebaute Bereich umfasst eine geschwungene Galerie mit Rohrgeländer, eine Treppe, zwei gepolsterte Lounges, eine halbrunde Bar mit Flaschenregal, ein abgerundetes DJ-Pult sowie einen beleuchteten Deckenring. Der bestehende Raum, die Bühne, LED-Wand und Lichtprogramme bleiben erhalten. Die Tanzflächenstreifen liegen über dem Bodenaufsatz; die senkrechten Deckenspots verwenden eine geeignete Aufwärtsrichtung. Zwei warme Grundlichter werfen Schatten, die übrigen bleiben aus Leistungsgründen ohne Schatten. HDR und natürliches Bloom bleiben aktiv.
 
 Fünf eigene 256×256-PNG-Materialsets für Beton, Stahl, Boden, Leder und geprägtes Metallgitter liegen unter `assets/textures/moonchild/`. Sie enthalten jeweils Base Color, eine aus einem periodischen Höhenfeld abgeleitete Tangent-Space-Normalmap und eine kombinierte ORM-Datei (R: AO konstant weiß, G: Roughness, B: Metallic). Das Gitter ist eine geprägte Oberfläche ohne echte Löcher. Der Generator `tools/generate_textures.py` erstellt die Dateien deterministisch; dafür werden Python, NumPy und Pillow benötigt, zum Spielen nicht. Die Gitternetz-, Boden- und Materialskalen sind ein erster Ansatz und brauchen Sichtprüfung im laufenden Spiel.
 
-Die Geometrie, das Generatorskript und die erzeugten Texturen sind eigenständig für Moonchild erstellt und stehen unter der MIT-Lizenz dieses Repositories. Es wurden keine fremden Bild- oder Modell-Assets verwendet. Bevy und seine Abhängigkeiten unterliegen ihren jeweiligen eigenen Open-Source-Lizenzen.
+Die Geometrie, die Generatorskripte und die erzeugten Texturen sind eigenständig für Moonchild erstellt und stehen unter der MIT-Lizenz dieses Repositories. Die Controller-Beschriftungen werden beim Generieren mit der auf dem Erzeugungssystem installierten freien Schrift DejaVu Sans gesetzt; die Schriftdatei selbst wird nicht mitgeliefert. `tools/generate_dj_textures.py` erzeugt die beiden Faceplates mit Pillow. Es wurden keine fremden Bild- oder Modell-Assets verwendet. Bevy und seine Abhängigkeiten unterliegen ihren jeweiligen eigenen Open-Source-Lizenzen.
 
 ## Grenzen und weitere Arbeit
 
