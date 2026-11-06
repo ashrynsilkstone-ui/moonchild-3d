@@ -1,11 +1,14 @@
 //! Original Moonchild architecture and materials. Dimensions are in metres.
 use std::f32::consts::{PI, TAU};
-use bevy::{asset::RenderAssetUsages, mesh::Indices, prelude::*, render::render_resource::PrimitiveTopology};
+use bevy::{asset::RenderAssetUsages, image::ImageLoaderSettings, mesh::Indices, prelude::*, render::render_resource::PrimitiveTopology};
 
 fn textured(materials: &mut Assets<StandardMaterial>, server: &AssetServer, name: &str, metallic: f32) -> Handle<StandardMaterial> {
     let base = server.load(format!("textures/moonchild/{name}_base.png"));
-    let normal = server.load(format!("textures/moonchild/{name}_normal.png"));
-    let orm: Handle<Image> = server.load(format!("textures/moonchild/{name}_orm.png"));
+    // Data textures are linear, unlike the sRGB base-color image.
+    let normal = server.load_builder().with_settings(|s: &mut ImageLoaderSettings| s.is_srgb = false)
+        .load(format!("textures/moonchild/{name}_normal.png"));
+    let orm: Handle<Image> = server.load_builder().with_settings(|s: &mut ImageLoaderSettings| s.is_srgb = false)
+        .load(format!("textures/moonchild/{name}_orm.png"));
     materials.add(StandardMaterial {
         base_color_texture: Some(base), normal_map_texture: Some(normal),
         metallic_roughness_texture: Some(orm.clone()), occlusion_texture: Some(orm),
