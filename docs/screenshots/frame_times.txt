@@ -1,0 +1,13 @@
+01_entrance               4.98 ms/frame  ~ 200.9 fps
+02_gallery_overview       4.97 ms/frame  ~ 201.3 fps
+03_bar                    4.95 ms/frame  ~ 201.9 fps
+04_lounge_upper           5.00 ms/frame  ~ 200.0 fps
+05_ceiling_ring           5.58 ms/frame  ~ 179.1 fps
+06_dj_booth               5.85 ms/frame  ~ 171.1 fps
+07_floor_detail           5.93 ms/frame  ~ 168.5 fps
+08_stairs                 6.12 ms/frame  ~ 163.4 fps
+09_lounge_lower           6.19 ms/frame  ~ 161.5 fps
+11_dj_gear_close          5.91 ms/frame  ~ 169.2 fps
+12_stage_steps            6.13 ms/frame  ~ 163.3 fps
+10_from_stage             6.51 ms/frame  ~ 153.6 fps
+13_house_light_only       6.39 ms/frame  ~ 156.5 fps
