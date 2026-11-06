@@ -20,7 +20,7 @@ jobs:
         run: cargo build
       - name: Launch with software Vulkan and capture game window
         run: |
-          xvfb-run -a -s '-screen 0 1440x900x24' bash -c '
+          BEVY_ASSET_ROOT="$PWD" xvfb-run -a -s '-screen 0 1440x900x24' bash -c '
             target/debug/moonchild-3d >/tmp/moonchild.log 2>&1 & game=$!
             sleep 120
             if ! kill -0 "$game" 2>/dev/null; then cat /tmp/moonchild.log; exit 1; fi
@@ -29,8 +29,21 @@ jobs:
             base64 -w 0 /tmp/moonchild-game.jpg
             echo
             echo SCREENSHOT_BASE64_END
+            window=$(xdotool search --name "MOONCHILD" | head -n1)
+            xdotool windowfocus "$window" keydown w
+            sleep 5
+            xdotool keyup w mousemove 600 400 mousedown 3 mousemove_relative --sync -- 950 0
+            sleep 3
+            xdotool mouseup 3
+            sleep 12
+            import -window root -resize 960x600 -quality 70 /tmp/moonchild-gallery.jpg
+            echo GALLERY_BASE64_BEGIN
+            base64 -w 0 /tmp/moonchild-gallery.jpg
+            echo
+            echo GALLERY_BASE64_END
             echo GAME_LOG_BEGIN
             cat /tmp/moonchild.log
             echo GAME_LOG_END
+            if grep -E "ERROR bevy_asset|panicked at" /tmp/moonchild.log; then kill "$game"; exit 1; fi
             kill "$game"
           '
