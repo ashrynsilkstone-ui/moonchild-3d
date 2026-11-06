@@ -114,7 +114,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
 
     // Raised DJ stage at the far end, including decks, mixers, speakers, LED wall.
     block(&mut commands,&mut meshes,stage.clone(),Vec3::new(0.0,0.48,-7.55),Vec3::new(14.0,0.96,4.4));
-    block(&mut commands,&mut meshes,dark.clone(),Vec3::new(0.0,1.52,-8.0),Vec3::new(6.8,1.2,1.1));
+    // Capsule profile softens the front and ends of the DJ booth.
+    let mut booth_mesh: Mesh = Capsule3d::new(0.55, 5.7).into();
+    let _ = booth_mesh.generate_tangents();
+    commands.spawn((Mesh3d(meshes.add(booth_mesh)), MeshMaterial3d(dark.clone()),
+        Transform::from_xyz(0.0,1.54,-8.0).with_rotation(Quat::from_rotation_z(PI / 2.0))));
     block(&mut commands,&mut meshes,cyan.clone(),Vec3::new(0.0,1.1,-7.43),Vec3::new(6.9,0.09,0.08));
     for &x in &[-2.05,2.05] {
         block(&mut commands,&mut meshes,metal.clone(),Vec3::new(x,2.17,-7.63),Vec3::new(1.55,0.13,0.64));

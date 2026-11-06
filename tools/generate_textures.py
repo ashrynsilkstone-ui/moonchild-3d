@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Moonchild's own repeatable PBR texture sets (CC0). Requires numpy/Pillow."""
+"""Generate Moonchild's own repeatable PBR texture sets (MIT). Requires numpy/Pillow."""
 from pathlib import Path
 import numpy as np
 from PIL import Image

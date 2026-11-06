@@ -110,6 +110,17 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, s: &Surfaces, cyan: Ha
         let middle=(a+b)*0.5; let p=point(middle,1.85,0.53);
         piece(c,meshes,Cuboid::new(0.18,1.0,0.17),s.grille.clone(),Transform::from_translation(p).with_rotation(Quat::from_rotation_y(-middle)));
     }
+    // Backlit bottle display at the bar's wall side; every object is procedural.
+    for &height in &[1.58, 2.13] {
+        piece(c,meshes,Cuboid::new(0.38,0.07,3.5),s.steel.clone(),Transform::from_xyz(10.9,height,2.5));
+        rod(c,meshes,cyan.clone(),Vec3::new(10.69,height+0.02,0.8),Vec3::new(10.69,height+0.02,4.2),0.018);
+        for i in 0..9 {
+            let z=0.95+i as f32*0.38;
+            let bottle_mat=if i%3==0 { pink.clone() } else { s.steel.clone() };
+            piece(c,meshes,Cylinder::new(0.075,0.25),bottle_mat.clone(),Transform::from_xyz(10.9,height+0.17,z));
+            piece(c,meshes,Cylinder::new(0.03,0.09),bottle_mat,Transform::from_xyz(10.9,height+0.34,z));
+        }
+    }
     // Moonchild's suspended double halo and radial strips; no imported logos.
     for (radius,tube,mat) in [(3.4,0.12,s.steel.clone()),(3.15,0.035,cyan.clone()),(3.65,0.035,pink.clone())] {
         piece(c,meshes,Torus::new(radius-tube,radius+tube),mat,Transform::from_xyz(0.0,6.12,0.2));

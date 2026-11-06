@@ -3,10 +3,31 @@ on: [push, workflow_dispatch]
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      RUSTFLAGS: -C link-arg=-fuse-ld=lld
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux development libraries
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev lld xvfb x11-apps imagemagick mesa-vulkan-drivers
       - name: Check Moonchild
         run: cargo check
+      - name: Test navigation
+        run: cargo test
+      - name: Build executable
+        run: cargo build
+      - name: Launch with software Vulkan and capture game window
+        run: |
+          xvfb-run -a -s '-screen 0 1440x900x24' bash -c '
+            target/debug/moonchild-3d >/tmp/moonchild.log 2>&1 & game=$!
+            sleep 30
+            if ! kill -0 "$game" 2>/dev/null; then cat /tmp/moonchild.log; exit 1; fi
+            import -window root -resize 960x600 -quality 70 /tmp/moonchild-game.jpg
+            echo SCREENSHOT_BASE64_BEGIN
+            base64 -w 0 /tmp/moonchild-game.jpg
+            echo
+            echo SCREENSHOT_BASE64_END
+            kill "$game"
+          '
