@@ -1,8 +1,13 @@
 //! Moonchild 3D v0.1 - fully procedural, no paid assets.
+mod club_section;
+mod navigation;
+
 use std::f32::consts::PI;
 use bevy::{
     camera::Hdr,
+    image::{ImageAddressMode, ImageSamplerDescriptor},
     input::mouse::AccumulatedMouseMotion,
+    mesh::VertexAttributeValues,
     post_process::bloom::Bloom,
     prelude::*,
 };
@@ -29,7 +34,13 @@ struct StatusText;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
+        .add_plugins(DefaultPlugins.set(ImagePlugin {
+            default_sampler: ImageSamplerDescriptor {
+                address_mode_u: ImageAddressMode::Repeat,
+                address_mode_v: ImageAddressMode::Repeat,
+                ..ImageSamplerDescriptor::linear()
+            },
+        }).set(WindowPlugin {
             primary_window: Some(Window {
                 title: "MOONCHILD | Rust 3D Club v0.1".into(),
                 resolution: (1440, 900).into(),
@@ -37,7 +48,7 @@ fn main() {
             }),
             ..default()
         }))
-        .insert_resource(GlobalAmbientLight { color: Color::srgb(0.42, 0.44, 0.52), brightness: 95.0, ..default() })
+        .insert_resource(GlobalAmbientLight { color: Color::srgb(0.80, 0.73, 0.65), brightness: 220.0, ..default() })
         .init_resource::<Show>()
         .add_systems(Startup, setup)
         .add_systems(Update, (walk, controls, animate_lights, update_hud))
@@ -60,19 +71,35 @@ fn pbr(
     })
 }
 fn glow(materials: &mut Assets<StandardMaterial>, r: f32, g: f32, b: f32) -> Handle<StandardMaterial> {
-    materials.add(StandardMaterial { base_color: Color::srgb(r.min(1.0),g.min(1.0),b.min(1.0)), emissive: LinearRgba::rgb(r*9.0,g*9.0,b*9.0), unlit: true, ..default() })
+    materials.add(StandardMaterial { base_color: Color::srgb(r.min(1.0),g.min(1.0),b.min(1.0)), emissive: LinearRgba::rgb(r*9.0,g*9.0,b*9.0), unlit: false, ..default() })
 }
 fn block(cmd: &mut Commands, meshes: &mut Assets<Mesh>, material: Handle<StandardMaterial>, pos: Vec3, size: Vec3) {
-    cmd.spawn((Mesh3d(meshes.add(Cuboid::new(size.x,size.y,size.z))), MeshMaterial3d(material), Transform::from_translation(pos)));
+    let mut mesh: Mesh = Cuboid::new(size.x,size.y,size.z).into();
+    // Use world-sized planar UVs on the six cuboid faces, instead of stretching
+    // a single 256 px tile across an entire wall or the dance floor.
+    let projected = match (mesh.attribute(Mesh::ATTRIBUTE_POSITION), mesh.attribute(Mesh::ATTRIBUTE_NORMAL)) {
+        (Some(VertexAttributeValues::Float32x3(points)), Some(VertexAttributeValues::Float32x3(normals))) => {
+            Some(points.iter().zip(normals).map(|(p,n)| {
+                if n[1].abs() > 0.5 { [p[0]*0.5, p[2]*0.5] }
+                else if n[0].abs() > 0.5 { [p[2]*0.5, p[1]*0.5] }
+                else { [p[0]*0.5, p[1]*0.5] }
+            }).collect::<Vec<[f32;2]>>())
+        },
+        _ => None,
+    };
+    if let Some(uv) = projected { mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv); }
+    let _ = mesh.generate_tangents();
+    cmd.spawn((Mesh3d(meshes.add(mesh)), MeshMaterial3d(material), Transform::from_translation(pos)));
 }
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
+fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>) {
+    let surfaces = club_section::Surfaces::new(&mut materials, &asset_server);
     // Physically based materials: glossy dance floor, brushed steel and matte concrete.
     let dark = pbr(&mut materials, Color::srgb(0.035,0.039,0.055), 0.0, 0.88, 0.20);
-    let wall = pbr(&mut materials, Color::srgb(0.105,0.115,0.130), 0.0, 0.78, 0.28);
-    let floor = pbr(&mut materials, Color::srgb(0.105,0.115,0.140), 0.04, 0.23, 0.75);
-    let metal = pbr(&mut materials, Color::srgb(0.21,0.23,0.27), 0.92, 0.27, 0.80);
+    let wall = surfaces.concrete.clone();
+    let floor = surfaces.floor.clone();
+    let metal = surfaces.steel.clone();
     let stage = pbr(&mut materials, Color::srgb(0.14,0.14,0.18), 0.14, 0.38, 0.55);
-    let glossy_floor = pbr(&mut materials, Color::srgb(0.085,0.095,0.12), 0.08, 0.12, 0.88);
+    let glossy_floor = surfaces.floor.clone();
     let violet = glow(&mut materials, 0.58,0.10,1.0);
     let pink = glow(&mut materials, 1.0,0.06,0.42);
     let cyan = glow(&mut materials, 0.01,0.8,1.0);
@@ -101,7 +128,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
 
     // Raised DJ stage at the far end, including decks, mixers, speakers, LED wall.
     block(&mut commands,&mut meshes,stage.clone(),Vec3::new(0.0,0.48,-7.55),Vec3::new(14.0,0.96,4.4));
-    block(&mut commands,&mut meshes,dark.clone(),Vec3::new(0.0,1.52,-8.0),Vec3::new(6.8,1.2,1.1));
+    // Capsule profile softens the front and ends of the DJ booth.
+    let mut booth_mesh: Mesh = Capsule3d::new(0.55, 5.7).into();
+    let _ = booth_mesh.generate_tangents();
+    commands.spawn((Mesh3d(meshes.add(booth_mesh)), MeshMaterial3d(dark.clone()),
+        Transform::from_xyz(0.0,1.54,-8.0).with_rotation(Quat::from_rotation_z(PI / 2.0))));
     block(&mut commands,&mut meshes,cyan.clone(),Vec3::new(0.0,1.1,-7.43),Vec3::new(6.9,0.09,0.08));
     for &x in &[-2.05,2.05] {
         block(&mut commands,&mut meshes,metal.clone(),Vec3::new(x,2.17,-7.63),Vec3::new(1.55,0.13,0.64));
@@ -117,7 +148,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     // LED tiles, individually animated via material emissive color.
     for col in 0..20 {
         for row in 0..6 {
-            let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(2.0,0.1,3.0), unlit: true, ..default() });
+            let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(2.0,0.1,3.0), unlit: false, ..default() });
             commands.spawn((Mesh3d(meshes.add(Cuboid::new(0.49,0.49,0.07))), MeshMaterial3d(material),
                 Transform::from_xyz((col as f32-9.5)*0.53, 3.15+row as f32*0.54,-9.76), Led { index: col*6+row }));
         }
@@ -126,17 +157,14 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     // Alternating luminous lines around floor, side wall, lounge and bar.
     for i in 0..12 {
         let x = (i as f32-5.5)*1.50;
-        block(&mut commands,&mut meshes,if i%2==0 {cyan.clone()} else {violet.clone()},Vec3::new(x,0.015,-3.10),Vec3::new(0.11,0.025,9.2));
+        block(&mut commands,&mut meshes,if i%2==0 {cyan.clone()} else {violet.clone()},Vec3::new(x,0.038,0.35),Vec3::new(0.11,0.008,9.1));
     }
     for &x in &[-11.6,11.6] {
         for &y in &[1.0,3.3,5.9] {
             block(&mut commands,&mut meshes,if y<3.0 {pink.clone()} else {blue.clone()},Vec3::new(x,y,0.0),Vec3::new(0.08,0.08,17.5));
         }
     }
-    for &x in &[-9.2,9.2] {
-        block(&mut commands,&mut meshes,stage.clone(),Vec3::new(x,0.5,4.2),Vec3::new(3.1,1.0,5.0));
-        block(&mut commands,&mut meshes,cyan.clone(),Vec3::new(x,1.04,4.2),Vec3::new(3.05,0.07,4.95));
-    }
+    club_section::spawn(&mut commands, &mut meshes, &surfaces, cyan.clone(), pink.clone());
     for i in 0..5 {
         let x = -7.0 + i as f32 * 3.5;
         block(&mut commands,&mut meshes,metal.clone(),Vec3::new(x,6.05,-1.2),Vec3::new(0.65,0.35,0.65));
@@ -168,11 +196,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                 range: 18.0,
                 inner_angle: 0.50,
                 outer_angle: 0.78,
-                shadow_maps_enabled: false,
+                shadow_maps_enabled: (x == 0.0 && z == 0.5) || (x == 8.0 && z == 4.0),
                 ..default()
             },
             Transform::from_xyz(x,6.08,z)
-                .looking_at(Vec3::new(x,0.0,z),Vec3::Y),
+                .looking_at(Vec3::new(x,0.0,z),Vec3::Z),
         ));
     }
     // Extra stage wash lights; subtle warm white illumination for the DJ deck.
@@ -232,10 +260,10 @@ fn walk(keys: Res<ButtonInput<KeyCode>>, mouse: Res<ButtonInput<MouseButton>>,
     if keys.pressed(KeyCode::KeyD) { direction+=right; }
     if keys.pressed(KeyCode::KeyA) { direction-=right; }
     let speed = if keys.pressed(KeyCode::ShiftLeft) { 9.0 } else { 4.7 };
-    if direction.length_squared()>0.0 { t.translation += direction.normalize()*speed*time.delta_secs(); }
-    t.translation.x = t.translation.x.clamp(-W/2.0+0.6,W/2.0-0.6);
-    t.translation.z = t.translation.z.clamp(-5.0,D/2.0-0.6); // stage barrier; walkable dance floor
-    t.translation.y = 1.78;
+    if direction.length_squared()>0.0 {
+        let movement = direction.normalize() * speed * time.delta_secs().min(0.1);
+        t.translation = navigation::walk_position(t.translation, movement);
+    }
 }
 fn controls(keys: Res<ButtonInput<KeyCode>>, mut show: ResMut<Show>, mut exit: MessageWriter<AppExit>) {
     if keys.just_pressed(KeyCode::Digit1) { show.mode=0; }

@@ -1,66 +1,54 @@
 # MOONCHILD 3D · Version 0.1
 
-Ein kostenloser, selbst gebauter begehbarer Techno-Club in **Rust / Bevy 0.20.1**. Alle 3D-Objekte sind prozedural erstellt. Keine externen Modelle, kostenpflichtigen Assets oder Musikrechte erforderlich.
+Ein kostenloser, selbst gebauter begehbarer Techno-Club in Rust und Bevy 0.20.1. Die Clubgeometrie und Materialbilder sind für Moonchild erstellt; es werden keine kostenpflichtigen Modelle, Texturen oder Dienste benötigt.
 
-## Voraussetzungen (CachyOS / Arch Linux)
+## Start auf CachyOS / Arch Linux
 
 ```bash
-sudo pacman -S --needed rustup base-devel clang lld pkgconf alsa-lib libx11 libxcursor libxi libxrandr vulkan-tools
+sudo pacman -S --needed rustup base-devel clang lld pkgconf alsa-lib libx11 libxcursor libxi libxrandr wayland libxkbcommon libxkbcommon-x11 vulkan-radeon vulkan-tools
 rustup default stable
-```
-
-## Starten
-
-```bash
 git clone https://github.com/ashrynsilkstone-ui/moonchild-3d.git
 cd moonchild-3d
 cargo run --release
 ```
 
-Das erstmalige Bauen lädt Bevy und seine Abhängigkeiten herunter und kompiliert sie. Folge-Starts sind schneller. Vulkan-fähige Grafiktreiber vorausgesetzt.
+Die Paketnamen und Treiber bitte bei Bedarf an die eigene Installation anpassen. `systemd-libs` stellt auf Arch normalerweise libudev bereit. Das erste Bauen lädt und kompiliert Bevy. Vulkan und ein Grafiktreiber sind erforderlich. `cargo run --release` aus dem Projektverzeichnis starten. Beim direkten Start der Binärdatei muss der Asset-Pfad gesetzt werden, zum Beispiel `BEVY_ASSET_ROOT="$PWD" target/release/moonchild-3d` aus dem Projektverzeichnis.
 
 ## Steuerung
 
 | Taste | Funktion |
 |---|---|
-| W A S D | Gehen |
+| W A S D | Gehen, links hinten über die Treppe zur Galerie |
 | Shift | Schneller gehen |
 | Rechte Maustaste gedrückt + Maus | Umsehen |
-| 1 | Neon / Violett-Cyan |
-| 2 | Rave / Rot-Blau |
-| 3 | Chill / Blau-Türkis |
-| 4 | Strobe / Blitzmodus |
-| L | Licht an/aus |
+| 1 / 2 / 3 | Neon / Rave / Chill |
+| 4 | Strobe (nur manuell aktiv) |
+| L | Show-Licht an/aus, Grundlicht bleibt an |
 | + / - | Tempo und BPM ändern |
 | Escape | Beenden |
 
-## Enthalten
+## Club und Materialien
 
-- 24 × 20 m Clubraum, Wände, Decke, Träger und Säulen
-- DJ-Bühne, Decks, Mixer, Lautsprecher, animierte LED-Wand
-- Tanzfläche mit Neonlinien, Podeste, Side-Lightings
-- 5 animierte bewegliche Spotlights und 4 pulsierende Point-Lights
-- 10 feste warmweiße Deckenspots plus 3 Bühnen-Spots für bessere Grundausleuchtung
-- PBR-Oberflächen mit Metall-, Rauheits- und Glanzwerten (glänzende Tanzfläche, gebürstetes Metall, Beton)
-- HDR und Bloom für leuchtende Materialien
-- First-Person-Steuerung; einfache Begrenzung an Außenwänden
-- Vier Lichtprogramme, BPM- und Geschwindigkeitsregler
-- Rust-Quellcode, ohne benötigte externe Assets
+Der erste ausgebaute Bereich umfasst eine geschwungene Galerie mit Rohrgeländer, eine Treppe, zwei gepolsterte Lounges, eine halbrunde Bar mit Flaschenregal, ein abgerundetes DJ-Pult sowie einen beleuchteten Deckenring. Der bestehende Raum, die Bühne, LED-Wand und Lichtprogramme bleiben erhalten. Die Tanzflächenstreifen liegen über dem Bodenaufsatz; die senkrechten Deckenspots verwenden eine geeignete Aufwärtsrichtung. Zwei warme Grundlichter werfen Schatten, die übrigen bleiben aus Leistungsgründen ohne Schatten. HDR und natürliches Bloom bleiben aktiv.
 
-## Was noch fehlt
+Fünf eigene 256×256-PNG-Materialsets für Beton, Stahl, Boden, Leder und geprägtes Metallgitter liegen unter `assets/textures/moonchild/`. Sie enthalten jeweils Base Color, eine aus einem periodischen Höhenfeld abgeleitete Tangent-Space-Normalmap und eine kombinierte ORM-Datei (R: AO konstant weiß, G: Roughness, B: Metallic). Das Gitter ist eine geprägte Oberfläche ohne echte Löcher. Der Generator `tools/generate_textures.py` erstellt die Dateien deterministisch; dafür werden Python, NumPy und Pillow benötigt, zum Spielen nicht. Die Gitternetz-, Boden- und Materialskalen sind ein erster Ansatz und brauchen Sichtprüfung im laufenden Spiel.
 
-PBR-Materialwerte sind vorhanden; Bildtexturen/Normalmaps sowie echte Spiegelungen auf der Tanzfläche fehlen noch. Keine echte Audiosynchronisierung, keine Sound-Dateien, kein physikalisch korrektes Laser-Volumen, keine NPCs, keine detaillierten importierten 3D-Modelle, keine Multiplayer-Logik. Die Kamera nutzt vorerst einfache Raumgrenzen statt vollständiger Kollisionsphysik. Ein 3D-Bild allein wird damit noch nicht 1:1 reproduziert; dafür wären detaillierte Modelle, Texturen und eventuell Nebelshader nötig.
+Die Geometrie, das Generatorskript und die erzeugten Texturen sind eigenständig für Moonchild erstellt und stehen unter der MIT-Lizenz dieses Repositories. Es wurden keine fremden Bild- oder Modell-Assets verwendet. Bevy und seine Abhängigkeiten unterliegen ihren jeweiligen eigenen Open-Source-Lizenzen.
 
-## Nächste sinnvolle Ausbaustufen
+## Grenzen und weitere Arbeit
 
-v0.2: Umkleide/Foyer, Bar und Lounge, echte Kollisionsphysik, GLB-Modelle, in-game Lichtpult.
+Die Bewegung prüft die Raumgrenzen, Bühne, Galerie, Treppe und vereinfachte Hindernisbereiche. Es ist keine vollständige Physik und keine präzise Mesh-Kollision; Geländer und Möbel sind nur näherungsweise berücksichtigt. Keine echte Audiosynchronisierung, keine Sound-Dateien, keine volumetrischen Laser, keine NPCs und kein Multiplayer. Eine Umgebungskarte, Screen-Space-Reflexionen oder Raytracing sind nicht eingerichtet; punktuelle PBR-Glanzlichter sind keine vollständige Spiegelung. Visuelle Qualität, Schatten, UV-Nähte und Bildrate müssen auf dem Zielsystem geprüft werden.
 
-v0.3: Freie, rechtssicher verwendbare Musik / eigene Tracks, beatgesteuertes Licht, visuelle Nebel- und Laser-Shader.
+## Prüfungen
 
-v0.4: DJ-Animationen, Besucher-NPCs und speicherbare Club-Konfigurationen.
+```bash
+cargo check
+cargo test
+cargo run --release
+```
+
+Am 6. November 2026 wurden auf einem Ubuntu-CI-Runner `cargo check`, drei Navigationstests mit `cargo test` und `cargo build` für den Stand mit Texturen, Galerie und LED-Korrektur erfolgreich ausgeführt ([Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/42154079047)). Das Spiel wurde außerdem mit Mesa llvmpipe unter virtuellem X11 gestartet; die Protokolle zeigen keine fehlenden Texturen. Die Bilder zeigten eine zu dunkle Umgebung. Die anschließend angehobene Grundhelligkeit war bei Dokumentation dieses Tests noch nicht visuell bestätigt. Eine CI-Prüfung ersetzt keine Sicht- und Steuerungsprüfung auf CachyOS mit der RX 9070 XT.
 
 ## Lizenz
 
-MIT — siehe LICENSE. Alle hier erzeugten Code-/Geometrie-Inhalte sind frei verwendbar.
-
-*Hinweis: Prototyp bisher nicht auf dem Zielsystem kompiliert.*
+MIT – siehe LICENSE.
