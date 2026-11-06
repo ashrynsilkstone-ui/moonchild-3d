@@ -30,7 +30,7 @@ Die Paketnamen und Treiber bitte bei Bedarf an die eigene Installation anpassen.
 
 ## Club und Materialien
 
-Die DJ-Bühne ist 0,96 m hoch und per Sprung erreichbar. Springen und Landen berücksichtigen Bühnenkante, Galerieunterseite und einfache Hindernisse. Die Controller bestehen aus zwei Media-Playern und einem Vierkanal-Mixer mit eigenen Texturdateien sowie räumlichen Jogwheel-Ringen, Reglern und Faderkappen. Die Bedienelemente und Bildschirmgrafiken sind derzeit rein visuell und steuern keine Musik.
+Die DJ-Bühne ist 0,96 m hoch und per Sprung erreichbar. Springen und Landen berücksichtigen Bühnenkante, Galerieunterseite und einfache Hindernisse. Die Controller bestehen aus zwei Media-Playern und einem Vierkanal-Mixer mit eigenen Texturdateien sowie räumlichen Jogwheel-Ringen, Reglern und Faderkappen. Displays und einzelne LED-Anzeigen besitzen zusätzlich eigene Emissionstexturen und werden von einer Pultleuchte unterstützt. Die Bedienelemente und Bildschirmgrafiken sind derzeit rein visuell und steuern keine Musik.
 
 Der erste ausgebaute Bereich umfasst eine geschwungene Galerie mit Rohrgeländer, eine Treppe, zwei gepolsterte Lounges, eine halbrunde Bar mit Flaschenregal, ein abgerundetes DJ-Pult sowie einen beleuchteten Deckenring. Der bestehende Raum, die Bühne, LED-Wand und Lichtprogramme bleiben erhalten. Die Tanzflächenstreifen liegen über dem Bodenaufsatz; die senkrechten Deckenspots verwenden eine geeignete Aufwärtsrichtung. Zwei warme Grundlichter werfen Schatten, die übrigen bleiben aus Leistungsgründen ohne Schatten. HDR und natürliches Bloom bleiben aktiv.
 
@@ -55,3 +55,5 @@ Am 6. November 2026 wurden auf einem Ubuntu-CI-Runner `cargo check`, drei Naviga
 ## Lizenz
 
 MIT – siehe LICENSE.
+
+Am 6. November 2026 wurden `cargo check`, fünf Navigationstests und `cargo build` auf einem Linux-Runner für die Bühnen- und Geräteänderung erfolgreich ausgeführt. Ein Software-Vulkan-Grafiklauf erreichte die Bühne und zeigte die bedruckten Geräte; daraufhin wurden Pultleuchte und Emissionskarten ergänzt. Die Steuerung und Bildwirkung auf der Zielgrafikkarte müssen weiterhin dort geprüft werden.

@@ -9,8 +9,12 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
     let casing=materials.add(StandardMaterial { base_color: Color::srgb(0.045,0.052,0.065), metallic:0.55, perceptual_roughness:0.42, ..default() });
     let metal=materials.add(StandardMaterial { base_color: Color::srgb(0.27,0.30,0.33), metallic:0.88, perceptual_roughness:0.30, ..default() });
     let rubber=materials.add(StandardMaterial { base_color: Color::srgb(0.09,0.10,0.11), metallic:0.04, perceptual_roughness:0.65, ..default() });
-    let deck_face=materials.add(StandardMaterial { base_color_texture:Some(server.load("textures/dj/deck_base.png")), metallic:0.10, perceptual_roughness:0.55, ..default() });
-    let mixer_face=materials.add(StandardMaterial { base_color_texture:Some(server.load("textures/dj/mixer_base.png")), metallic:0.10, perceptual_roughness:0.58, ..default() });
+    let deck_face=materials.add(StandardMaterial { base_color_texture:Some(server.load("textures/dj/deck_base.png")), emissive_texture:Some(server.load("textures/dj/deck_emissive.png")), emissive: LinearRgba::rgb(1.0,1.0,1.0), metallic:0.10, perceptual_roughness:0.55, ..default() });
+    let mixer_face=materials.add(StandardMaterial { base_color_texture:Some(server.load("textures/dj/mixer_base.png")), emissive_texture:Some(server.load("textures/dj/mixer_emissive.png")), emissive: LinearRgba::rgb(1.0,1.0,1.0), metallic:0.10, perceptual_roughness:0.58, ..default() });
+    // Focused neutral-white work light keeps controls legible at the booth.
+    c.spawn((SpotLight { intensity: 35_000.0, range: 6.0, color: Color::srgb(1.0,0.95,0.86),
+        inner_angle: 0.38, outer_angle: 0.68, shadow_maps_enabled: false, ..default() },
+        Transform::from_xyz(0.0,3.9,-7.8).looking_at(Vec3::new(0.0,2.14,-7.8),Vec3::Z)));
     // A media-player footprint about 60 cm wide, with a 48 cm mixer.
     const SCALE: f32 = 0.40;
     let deck_mesh=meshes.add(Plane3d::default().mesh().size(1.50*SCALE,0.88*SCALE));

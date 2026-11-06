@@ -64,6 +64,15 @@ def deck():
     d.rounded_rectangle((1248,514,1332,555),radius=5,fill=(104,112,115),outline=(196,202,203),width=3)
     label(d,1207,764,'PITCH RANGE',13);button(d,1200,790,126,48,'MASTER',BLUE)
     im.save(P/'deck_base.png',optimize=True)
+    # Only lit displays and colored indicators emit; the metal faceplate stays dark.
+    mask=Image.new('RGB',(w,h),(0,0,0)); mp=mask.load(); pix=im.load()
+    for yy in range(h):
+        for xx in range(w):
+            rr,gg,bb=pix[xx,yy]
+            screen=145<=xx<=1015 and 135<=yy<=270
+            colored=(max(rr,gg,bb)>100 and max(rr,gg,bb)-min(rr,gg,bb)>45)
+            if screen or colored: mp[xx,yy]=(rr,gg,bb)
+    mask.save(P/'deck_emissive.png',optimize=True)
 
 def mixer():
     w,h=1200,860;im,d=panel(w,h)
@@ -82,4 +91,10 @@ def mixer():
     d.rounded_rectangle((514,802,576,844),radius=5,fill=(130,139,143),outline=(225,228,227),width=2)
     label(d,70,790,'HEADPHONES',12);label(d,930,760,'LEVEL',13)
     im.save(P/'mixer_base.png',optimize=True)
+    mask=Image.new('RGB',(w,h),(0,0,0));mp=mask.load();pix=im.load()
+    for yy in range(h):
+        for xx in range(w):
+            rr,gg,bb=pix[xx,yy]
+            if max(rr,gg,bb)>100 and max(rr,gg,bb)-min(rr,gg,bb)>45: mp[xx,yy]=(rr,gg,bb)
+    mask.save(P/'mixer_emissive.png',optimize=True)
 deck();mixer()
