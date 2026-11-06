@@ -147,13 +147,13 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     // Overlay and instructions.
     commands.spawn((
         Text::new("MOONCHILD  |  3D CLUB   •   WASD bewegen  •  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe   |   L Licht an/aus   |   +/- Tempo  |  ESC schließen"),
-        TextFont { font_size: 17.0, ..default() },
+        TextFont { font_size: FontSize::Px(17.0), ..default() },
         TextColor(Color::srgb(0.87,0.91,1.0)),
         Node { position_type: PositionType::Absolute, top: px(16), left: px(18), ..default() },
     ));
     commands.spawn((
         Text::new("LICHTMODUS: NEON   |   BPM: 130"),
-        TextFont { font_size: 18.0, ..default() },
+        TextFont { font_size: FontSize::Px(18.0), ..default() },
         TextColor(Color::srgb(0.5,0.95,1.0)),
         Node { position_type: PositionType::Absolute, bottom: px(17), left: px(18), ..default() },
         StatusText,
@@ -161,7 +161,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
 }
 
 fn walk(keys: Res<ButtonInput<KeyCode>>, mouse: Res<ButtonInput<MouseButton>>,
-    motion: Res<AccumulatedMouseMotion>, time: Res<Time>, mut player: Single<(&mut Transform, &mut Player)>) {
+    motion: Res<AccumulatedMouseMotion>, time: Res<Time>, player: Single<(&mut Transform, &mut Player)>) {
     let (mut t,mut p) = player.into_inner();
     if mouse.pressed(MouseButton::Right) {
         p.yaw -= motion.delta.x * 0.003;
@@ -221,7 +221,7 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
         light.intensity=if show.enabled { 32_000.0+70_000.0*pulse } else { 0.0 };
     }
     for (led,mat_handle) in &leds {
-        if let Some(material)=materials.get_mut(&mat_handle.0) {
+        if let Some(mut material)=materials.get_mut(&mat_handle.0) {
             let x=(led.index / 6) as f32;
             let y=(led.index % 6) as f32;
             let wave=((x*0.39+y*0.54-t*2.6).sin()+1.0)*0.5;
