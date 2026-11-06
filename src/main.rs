@@ -48,7 +48,7 @@ fn main() {
             }),
             ..default()
         }))
-        .insert_resource(GlobalAmbientLight { color: Color::srgb(0.42, 0.44, 0.52), brightness: 95.0, ..default() })
+        .insert_resource(GlobalAmbientLight { color: Color::srgb(0.80, 0.73, 0.65), brightness: 220.0, ..default() })
         .init_resource::<Show>()
         .add_systems(Startup, setup)
         .add_systems(Update, (walk, controls, animate_lights, update_hud))
