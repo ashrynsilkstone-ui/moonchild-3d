@@ -50,7 +50,7 @@ fn gallery_mesh() -> Mesh {
         for p in [a,b,c,d] { positions.push(p.to_array()); normals.push(normal); }
         uvs.extend(uv); indices.extend([i,i+1,i+2,i+2,i+1,i+3]);
     };
-    for i in 0.0.80 {
+    for i in 0..80 {
         let x0=-10.3+20.6*i as f32/80.0; let x1=-10.3+20.6*(i+1) as f32/80.0;
         let z0=5.4+0.025*x0*x0; let z1=5.4+0.025*x1*x1;
         let a=Vec3::new(x0,3.0,z0); let b=Vec3::new(x0,3.0,9.55);
@@ -72,14 +72,14 @@ fn gallery_mesh() -> Mesh {
 pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, s: &Surfaces, cyan: Handle<StandardMaterial>, pink: Handle<StandardMaterial>) {
     c.spawn((Mesh3d(meshes.add(gallery_mesh())),MeshMaterial3d(s.floor.clone())));
     // A gentle twenty-step staircase, matching navigation.rs exactly.
-    for i in 0.0.20 {
+    for i in 0..20 {
         let z0=1.2+6.6*i as f32/20.0; let z1=1.2+6.6*(i+1) as f32/20.0;
         let h=3.0*(i+1) as f32/20.0;
         piece(c,meshes,Cuboid::new(1.6,h,z1-z0),s.steel.clone(),Transform::from_xyz(-9.0,h/2.0,(z0+z1)/2.0));
     }
     // Tubular balustrade follows the gallery curve; the stair opening is at the left end.
     let at=|x:f32,y:f32| Vec3::new(x,y,5.4+0.025*x*x);
-    for i in 0.0.48 {
+    for i in 0..48 {
         let x0=-8.15+18.35*i as f32/48.0; let x1=-8.15+18.35*(i+1) as f32/48.0;
         for y in [3.48,3.98] { rod(c,meshes,s.steel.clone(),at(x0,y),at(x1,y),0.035); }
         if i%3==0 { rod(c,meshes,s.steel.clone(),at(x0,3.02),at(x0,4.0),0.035); }
@@ -87,7 +87,7 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, s: &Surfaces, cyan: Ha
     }
     for &x in &[-9.85,-8.15] {
         rod(c,meshes,s.steel.clone(),Vec3::new(x,0.9,1.2),Vec3::new(x,3.9,7.8),0.04);
-        for i in 0.0.7 { let t=i as f32/6.0; let z=1.2+t*6.6; let y=t*3.0;
+        for i in 0..7 { let t=i as f32/6.0; let z=1.2+t*6.6; let y=t*3.0;
             rod(c,meshes,s.steel.clone(),Vec3::new(x,y,z),Vec3::new(x,y+0.9,z),0.03); }
     }
     // Two rounded, segmented leather sofas on the upper level.
@@ -114,6 +114,6 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, s: &Surfaces, cyan: Ha
     for (radius,tube,mat) in [(3.4,0.12,s.steel.clone()),(3.15,0.035,cyan.clone()),(3.65,0.035,pink.clone())] {
         piece(c,meshes,Torus::new(radius-tube,radius+tube),mat,Transform::from_xyz(0.0,6.12,0.2));
     }
-    for i in 0.0.16 { let angle=TAU*i as f32/16.0; let (sn,cs)=angle.sin_cos();
+    for i in 0..16 { let angle=TAU*i as f32/16.0; let (sn,cs)=angle.sin_cos();
         rod(c,meshes,if i%2==0 {cyan.clone()} else {pink.clone()},Vec3::new(cs*0.75,6.13,0.2+sn*0.75),Vec3::new(cs*3.05,6.13,0.2+sn*3.05),0.025); }
 }
