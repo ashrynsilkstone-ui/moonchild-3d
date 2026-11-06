@@ -37,15 +37,27 @@ fn main() {
             }),
             ..default()
         }))
-        .insert_resource(GlobalAmbientLight { color: Color::srgb(0.21, 0.19, 0.31), brightness: 40.0, ..default() })
+        .insert_resource(GlobalAmbientLight { color: Color::srgb(0.42, 0.44, 0.52), brightness: 95.0, ..default() })
         .init_resource::<Show>()
         .add_systems(Startup, setup)
         .add_systems(Update, (walk, controls, animate_lights, update_hud))
         .run();
 }
 
-fn mat(materials: &mut Assets<StandardMaterial>, color: Color, metal: f32) -> Handle<StandardMaterial> {
-    materials.add(StandardMaterial { base_color: color, metallic: metal, perceptual_roughness: 0.56, ..default() })
+fn pbr(
+    materials: &mut Assets<StandardMaterial>,
+    color: Color,
+    metallic: f32,
+    roughness: f32,
+    reflectance: f32,
+) -> Handle<StandardMaterial> {
+    materials.add(StandardMaterial {
+        base_color: color,
+        metallic,
+        perceptual_roughness: roughness,
+        reflectance,
+        ..default()
+    })
 }
 fn glow(materials: &mut Assets<StandardMaterial>, r: f32, g: f32, b: f32) -> Handle<StandardMaterial> {
     materials.add(StandardMaterial { base_color: Color::srgb(r.min(1.0),g.min(1.0),b.min(1.0)), emissive: LinearRgba::rgb(r*9.0,g*9.0,b*9.0), unlit: true, ..default() })
@@ -54,11 +66,13 @@ fn block(cmd: &mut Commands, meshes: &mut Assets<Mesh>, material: Handle<Standar
     cmd.spawn((Mesh3d(meshes.add(Cuboid::new(size.x,size.y,size.z))), MeshMaterial3d(material), Transform::from_translation(pos)));
 }
 fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
-    let dark = mat(&mut materials, Color::srgb(0.025,0.028,0.043), 0.15);
-    let wall = mat(&mut materials, Color::srgb(0.055,0.061,0.08), 0.05);
-    let floor = mat(&mut materials, Color::srgb(0.085,0.09,0.12), 0.32);
-    let metal = mat(&mut materials, Color::srgb(0.15,0.17,0.22), 0.8);
-    let stage = mat(&mut materials, Color::srgb(0.11,0.11,0.17), 0.25);
+    // Physically based materials: glossy dance floor, brushed steel and matte concrete.
+    let dark = pbr(&mut materials, Color::srgb(0.035,0.039,0.055), 0.0, 0.88, 0.20);
+    let wall = pbr(&mut materials, Color::srgb(0.105,0.115,0.130), 0.0, 0.78, 0.28);
+    let floor = pbr(&mut materials, Color::srgb(0.105,0.115,0.140), 0.04, 0.23, 0.75);
+    let metal = pbr(&mut materials, Color::srgb(0.21,0.23,0.27), 0.92, 0.27, 0.80);
+    let stage = pbr(&mut materials, Color::srgb(0.14,0.14,0.18), 0.14, 0.38, 0.55);
+    let glossy_floor = pbr(&mut materials, Color::srgb(0.085,0.095,0.12), 0.08, 0.12, 0.88);
     let violet = glow(&mut materials, 0.58,0.10,1.0);
     let pink = glow(&mut materials, 1.0,0.06,0.42);
     let cyan = glow(&mut materials, 0.01,0.8,1.0);
@@ -67,6 +81,8 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
 
     // Enclosed industrial warehouse: room 24m x 20m x 7m
     block(&mut commands,&mut meshes,floor.clone(),Vec3::new(0.0,-0.16,0.0),Vec3::new(W,0.32,D));
+    // Separate polished dance-floor inset: its top is just above the main floor.
+    block(&mut commands,&mut meshes,glossy_floor,Vec3::new(0.0,0.017,0.35),Vec3::new(14.5,0.03,9.1));
     block(&mut commands,&mut meshes,wall.clone(),Vec3::new(0.0,H/2.0,-D/2.0),Vec3::new(W,H,0.3));
     block(&mut commands,&mut meshes,wall.clone(),Vec3::new(-W/2.0,H/2.0,0.0),Vec3::new(0.3,H,D));
     block(&mut commands,&mut meshes,wall.clone(),Vec3::new(W/2.0,H/2.0,0.0),Vec3::new(0.3,H,D));
@@ -134,6 +150,46 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     for (i,(x,z)) in [(-8.0,-4.0),(8.0,-4.0),(-8.0,5.0),(8.0,5.0)].iter().enumerate() {
         commands.spawn((PointLight { intensity: 95_000.0, range: 13.0, color: Color::srgb(0.35,0.12,1.0), shadow_maps_enabled: false, ..default() },
             Transform::from_xyz(*x,4.0,*z), PulseLight { index: i }));
+    }
+    // Permanent warm-white house lights, independent of the show-light toggle.
+    // These illuminate the surfaces so PBR highlights remain visible even in Chill mode.
+    for &(x,z) in &[
+        (-8.0,-2.5),(-4.0,-1.0),(0.0,0.5),(4.0,-1.0),(8.0,-2.5),
+        (-8.0,4.0),(-4.0,5.0),(0.0,5.5),(4.0,5.0),(8.0,4.0),
+    ] {
+        block(&mut commands,&mut meshes,metal.clone(),
+            Vec3::new(x,6.27,z),Vec3::new(0.62,0.22,0.62));
+        block(&mut commands,&mut meshes,white.clone(),
+            Vec3::new(x,6.14,z),Vec3::new(0.36,0.035,0.36));
+        commands.spawn((
+            SpotLight {
+                intensity: 95_000.0,
+                color: Color::srgb(1.0,0.96,0.88),
+                range: 18.0,
+                inner_angle: 0.50,
+                outer_angle: 0.78,
+                shadow_maps_enabled: false,
+                ..default()
+            },
+            Transform::from_xyz(x,6.08,z)
+                .looking_at(Vec3::new(x,0.0,z),Vec3::Y),
+        ));
+    }
+    // Extra stage wash lights; subtle warm white illumination for the DJ deck.
+    for &x in &[-4.5,0.0,4.5] {
+        commands.spawn((
+            SpotLight {
+                intensity: 75_000.0,
+                color: Color::srgb(1.0,0.90,0.77),
+                range: 14.0,
+                inner_angle: 0.44,
+                outer_angle: 0.72,
+                shadow_maps_enabled: false,
+                ..default()
+            },
+            Transform::from_xyz(x,5.9,-5.8)
+                .looking_at(Vec3::new(x*0.6,1.8,-8.0),Vec3::Y),
+        ));
     }
     for &x in &[-10.8,10.8] {
         for &z in &[-7.0,0.0,7.0] {
