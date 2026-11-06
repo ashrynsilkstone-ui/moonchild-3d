@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux development libraries
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev lld xvfb x11-apps imagemagick mesa-vulkan-drivers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-0 lld xvfb x11-apps imagemagick mesa-vulkan-drivers
       - name: Check Moonchild
         run: cargo check
       - name: Test navigation
