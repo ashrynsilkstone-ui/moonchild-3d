@@ -1,0 +1,9 @@
+[package]
+name = "moonchild-3d"
+version = "0.1.0"
+edition = "2024"
+description = "Moonchild - free Rust / Bevy techno club prototype"
+license = "MIT"
+
+[dependencies]
+bevy = "=0.20.1"
