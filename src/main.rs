@@ -7,6 +7,7 @@ use bevy::{
     camera::Hdr,
     image::{ImageAddressMode, ImageSamplerDescriptor},
     input::mouse::AccumulatedMouseMotion,
+    mesh::VertexAttributeValues,
     post_process::bloom::Bloom,
     prelude::*,
 };
@@ -74,6 +75,19 @@ fn glow(materials: &mut Assets<StandardMaterial>, r: f32, g: f32, b: f32) -> Han
 }
 fn block(cmd: &mut Commands, meshes: &mut Assets<Mesh>, material: Handle<StandardMaterial>, pos: Vec3, size: Vec3) {
     let mut mesh: Mesh = Cuboid::new(size.x,size.y,size.z).into();
+    // Use world-sized planar UVs on the six cuboid faces, instead of stretching
+    // a single 256 px tile across an entire wall or the dance floor.
+    let projected = match (mesh.attribute(Mesh::ATTRIBUTE_POSITION), mesh.attribute(Mesh::ATTRIBUTE_NORMAL)) {
+        (Some(VertexAttributeValues::Float32x3(points)), Some(VertexAttributeValues::Float32x3(normals))) => {
+            Some(points.iter().zip(normals).map(|(p,n)| {
+                if n[1].abs() > 0.5 { [p[0]*0.5, p[2]*0.5] }
+                else if n[0].abs() > 0.5 { [p[2]*0.5, p[1]*0.5] }
+                else { [p[0]*0.5, p[1]*0.5] }
+            }).collect::<Vec<[f32;2]>>())
+        },
+        _ => None,
+    };
+    if let Some(uv) = projected { mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv); }
     let _ = mesh.generate_tangents();
     cmd.spawn((Mesh3d(meshes.add(mesh)), MeshMaterial3d(material), Transform::from_translation(pos)));
 }

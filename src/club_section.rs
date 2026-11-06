@@ -90,6 +90,14 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, s: &Surfaces, cyan: Ha
         for i in 0..7 { let t=i as f32/6.0; let z=1.2+t*6.6; let y=t*3.0;
             rod(c,meshes,s.steel.clone(),Vec3::new(x,y,z),Vec3::new(x,y+0.9,z),0.03); }
     }
+    // Soft warm fill above and below the balcony: the balcony otherwise masks
+    // some of the permanent overhead spots.
+    for &x in &[-4.2, 4.2] {
+        for &(y,z,power) in &[(2.35,8.25,14_000.0),(5.55,8.25,18_000.0)] {
+            c.spawn((PointLight { intensity: power, range: 6.0, color: Color::srgb(1.0,0.84,0.68),
+                shadow_maps_enabled: false, ..default() },Transform::from_xyz(x,y,z)));
+        }
+    }
     // Two rounded, segmented leather sofas on the upper level.
     let sphere=meshes.add(mesh_with_tangents(Sphere::new(1.0).mesh().uv(40,24)));
     for &cx in &[-4.2,4.2] {
