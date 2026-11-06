@@ -40,6 +40,8 @@ Das erstmalige Bauen lädt Bevy und seine Abhängigkeiten herunter und kompilier
 - DJ-Bühne, Decks, Mixer, Lautsprecher, animierte LED-Wand
 - Tanzfläche mit Neonlinien, Podeste, Side-Lightings
 - 5 animierte bewegliche Spotlights und 4 pulsierende Point-Lights
+- 10 feste warmweiße Deckenspots plus 3 Bühnen-Spots für bessere Grundausleuchtung
+- PBR-Oberflächen mit Metall-, Rauheits- und Glanzwerten (glänzende Tanzfläche, gebürstetes Metall, Beton)
 - HDR und Bloom für leuchtende Materialien
 - First-Person-Steuerung; einfache Begrenzung an Außenwänden
 - Vier Lichtprogramme, BPM- und Geschwindigkeitsregler
@@ -47,7 +49,7 @@ Das erstmalige Bauen lädt Bevy und seine Abhängigkeiten herunter und kompilier
 
 ## Was noch fehlt
 
-Keine echte Audiosynchronisierung, keine Sound-Dateien, kein physikalisch korrektes Laser-Volumen, keine NPCs, keine detaillierten importierten 3D-Modelle, keine Multiplayer-Logik. Die Kamera nutzt vorerst einfache Raumgrenzen statt vollständiger Kollisionsphysik. Ein 3D-Bild allein wird damit noch nicht 1:1 reproduziert; dafür wären detaillierte Modelle, Texturen und eventuell Nebelshader nötig.
+PBR-Materialwerte sind vorhanden; Bildtexturen/Normalmaps sowie echte Spiegelungen auf der Tanzfläche fehlen noch. Keine echte Audiosynchronisierung, keine Sound-Dateien, kein physikalisch korrektes Laser-Volumen, keine NPCs, keine detaillierten importierten 3D-Modelle, keine Multiplayer-Logik. Die Kamera nutzt vorerst einfache Raumgrenzen statt vollständiger Kollisionsphysik. Ein 3D-Bild allein wird damit noch nicht 1:1 reproduziert; dafür wären detaillierte Modelle, Texturen und eventuell Nebelshader nötig.
 
 ## Nächste sinnvolle Ausbaustufen
 
