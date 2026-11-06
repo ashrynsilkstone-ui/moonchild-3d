@@ -11,36 +11,38 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
     let rubber=materials.add(StandardMaterial { base_color: Color::srgb(0.09,0.10,0.11), metallic:0.04, perceptual_roughness:0.65, ..default() });
     let deck_face=materials.add(StandardMaterial { base_color_texture:Some(server.load("textures/dj/deck_base.png")), metallic:0.10, perceptual_roughness:0.55, ..default() });
     let mixer_face=materials.add(StandardMaterial { base_color_texture:Some(server.load("textures/dj/mixer_base.png")), metallic:0.10, perceptual_roughness:0.58, ..default() });
-    let deck_mesh=meshes.add(Plane3d::default().mesh().size(1.50,0.88));
-    let mixer_mesh=meshes.add(Plane3d::default().mesh().size(1.20,0.86));
-    let wheel_ring=meshes.add(Torus::new(0.229,0.240));
-    let knob=meshes.add(Cylinder::new(0.023,0.035));
+    // A media-player footprint about 60 cm wide, with a 48 cm mixer.
+    const SCALE: f32 = 0.40;
+    let deck_mesh=meshes.add(Plane3d::default().mesh().size(1.50*SCALE,0.88*SCALE));
+    let mixer_mesh=meshes.add(Plane3d::default().mesh().size(1.20*SCALE,0.86*SCALE));
+    let wheel_ring=meshes.add(Torus::new(0.229*SCALE,0.240*SCALE));
+    let knob=meshes.add(Cylinder::new(0.023*SCALE,0.035*SCALE));
     // Instruments rest on top of the curved booth, rather than floating at stage height.
     let center_z=-7.80;
-    for &center_x in &[-2.0,2.0] {
-        object(c,meshes,Cuboid::new(1.53,0.16,0.91),casing.clone(),Transform::from_xyz(center_x,2.16,center_z));
-        c.spawn((Mesh3d(deck_mesh.clone()),MeshMaterial3d(deck_face.clone()),Transform::from_xyz(center_x,2.242,center_z)));
-        let wheel_x=center_x+(510.0/1536.0-0.5)*1.50;
-        let wheel_z=center_z+(550.0/900.0-0.5)*0.88;
-        c.spawn((Mesh3d(wheel_ring.clone()),MeshMaterial3d(metal.clone()),Transform::from_xyz(wheel_x,2.255,wheel_z)));
+    for &center_x in &[-0.52,0.52] {
+        object(c,meshes,Cuboid::new(1.53*SCALE,0.16*SCALE,0.91*SCALE),casing.clone(),Transform::from_xyz(center_x,2.112,center_z));
+        c.spawn((Mesh3d(deck_mesh.clone()),MeshMaterial3d(deck_face.clone()),Transform::from_xyz(center_x,2.145,center_z)));
+        let wheel_x=center_x+(510.0/1536.0-0.5)*1.50*SCALE;
+        let wheel_z=center_z+(550.0/900.0-0.5)*0.88*SCALE;
+        c.spawn((Mesh3d(wheel_ring.clone()),MeshMaterial3d(metal.clone()),Transform::from_xyz(wheel_x,2.151,wheel_z)));
         for &(x,y) in &[(908.0,735.0),(1015.0,735.0)] {
-            let px=center_x+(x/1536.0-0.5)*1.50;
-            let pz=center_z+(y/900.0-0.5)*0.88;
-            c.spawn((Mesh3d(knob.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(px,2.26,pz)));
+            let px=center_x+(x/1536.0-0.5)*1.50*SCALE;
+            let pz=center_z+(y/900.0-0.5)*0.88*SCALE;
+            c.spawn((Mesh3d(knob.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(px,2.152,pz)));
         }
     }
-    object(c,meshes,Cuboid::new(1.23,0.16,0.89),casing,Transform::from_xyz(0.0,2.16,center_z));
-    c.spawn((Mesh3d(mixer_mesh),MeshMaterial3d(mixer_face),Transform::from_xyz(0.0,2.242,center_z)));
+    object(c,meshes,Cuboid::new(1.23*SCALE,0.16*SCALE,0.89*SCALE),casing,Transform::from_xyz(0.0,2.112,center_z));
+    c.spawn((Mesh3d(mixer_mesh),MeshMaterial3d(mixer_face),Transform::from_xyz(0.0,2.145,center_z)));
     // Raised gain/EQ/filter knobs and the four channel fader caps.
     for &x in &[230.0,410.0,590.0,770.0] {
         for y in [170.0,258.0,346.0,434.0,522.0] {
-            let px=(x/1200.0-0.5)*1.20;
-            let pz=center_z+(y/860.0-0.5)*0.86;
-            c.spawn((Mesh3d(knob.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(px,2.26,pz)));
+            let px=(x/1200.0-0.5)*1.20*SCALE;
+            let pz=center_z+(y/860.0-0.5)*0.86*SCALE;
+            c.spawn((Mesh3d(knob.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(px,2.152,pz)));
         }
     }
     for (i,x) in [230.0,410.0,590.0,770.0].iter().enumerate() {
         let y=715.0-(i%3) as f32*20.0;
-        object(c,meshes,Cuboid::new(0.066,0.025,0.029),metal.clone(),Transform::from_xyz((x/1200.0-0.5)*1.20,2.26,center_z+(y/860.0-0.5)*0.86));
+        object(c,meshes,Cuboid::new(0.066*SCALE,0.025*SCALE,0.029*SCALE),metal.clone(),Transform::from_xyz((x/1200.0-0.5)*1.20*SCALE,2.152,center_z+(y/860.0-0.5)*0.86*SCALE));
     }
 }
