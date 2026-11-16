@@ -45,6 +45,8 @@ struct Led { index: usize }
 struct PulseLight { index: usize }
 #[derive(Component)]
 struct StatusText;
+#[derive(Component)]
+struct HudOverlay;
 
 /// Repeating, trilinear sampler used for every tiling texture.
 pub fn repeat_sampler() -> ImageSamplerDescriptor {
@@ -99,7 +101,7 @@ fn main() {
         // Deferred shading: required for screen-space reflections (SSR).
         .insert_resource(bevy::pbr::DefaultOpaqueRendererMethod::deferred())
         .add_systems(Startup, setup)
-        .add_systems(Update, (walk, controls, animate_lights, update_hud, look::generate_mipmaps, quality::cycle, quality::apply.after(quality::cycle)))
+        .add_systems(Update, (walk, controls, toggle_hud, animate_lights, update_hud, look::generate_mipmaps, quality::cycle, quality::apply.after(quality::cycle)))
         .add_systems(Update, capture::run_tour.after(walk));
     if let Some(tour) = tour { app.insert_resource(tour); }
     app.run();
@@ -267,18 +269,20 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
         Transform::from_xyz(0.0,navigation::EYE,6.6).looking_at(Vec3::new(0.0,2.3,-7.0),Vec3::Y),
         Player { yaw: 0.0, pitch: 0.03, motion: navigation::Motion::standing() }));
     // Overlay and instructions (ASCII only: the default UI font lacks some glyphs).
+    let initial_hud_visibility = || if std::env::var_os("MOONCHILD_HIDE_HUD").is_some() { Visibility::Hidden } else { Visibility::Inherited };
     commands.spawn((
-        Text::new("MOONCHILD  |  3D CLUB  |  WASD gehen  |  Shift schneller  |  Leertaste springen  |  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe  5 Faecher  6 Kegel  7 Chase  8 Lounge  |  L Show-Licht an/aus  |  +/- Tempo  |  F2 Grafik  |  ESC beenden"),
+        Text::new("MOONCHILD  |  3D CLUB  |  WASD gehen  |  Shift schneller  |  Leertaste springen  |  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe  5 Faecher  6 Kegel  7 Chase  8 Lounge  |  L Show-Licht an/aus  |  +/- Tempo  |  F1 HUD  |  F2 Grafik  |  ESC beenden"),
         TextFont { font_size: FontSize::Px(17.0), ..default() },
         TextColor(Color::srgb(0.87,0.91,1.0)),
         Node { position_type: PositionType::Absolute, top: px(16), left: px(18), ..default() },
+        HudOverlay, initial_hud_visibility(),
     ));
     commands.spawn((
         Text::new("LICHTMODUS: NEON   |   BPM: 130"),
         TextFont { font_size: FontSize::Px(18.0), ..default() },
         TextColor(Color::srgb(0.5,0.95,1.0)),
         Node { position_type: PositionType::Absolute, bottom: px(17), left: px(18), ..default() },
-        StatusText,
+        StatusText, HudOverlay, initial_hud_visibility(),
     ));
 }
 
@@ -302,6 +306,13 @@ fn walk(keys: Res<ButtonInput<KeyCode>>, mouse: Res<ButtonInput<MouseButton>>,
     let movement = direction.normalize_or_zero() * speed * dt;
     t.translation = navigation::advance(t.translation, movement, keys.just_pressed(KeyCode::Space), dt, &mut p.motion);
 }
+fn toggle_hud(keys: Res<ButtonInput<KeyCode>>, mut overlays: Query<&mut Visibility, With<HudOverlay>>) {
+    if keys.just_pressed(KeyCode::F1) {
+        for mut visibility in &mut overlays {
+            *visibility = if *visibility == Visibility::Hidden { Visibility::Inherited } else { Visibility::Hidden };
+        }
+    }
+}
 fn controls(keys: Res<ButtonInput<KeyCode>>, mut show: ResMut<Show>, mut exit: MessageWriter<AppExit>) {
     if keys.just_pressed(KeyCode::Digit1) { show.mode=0; }
     if keys.just_pressed(KeyCode::Digit2) { show.mode=1; }
@@ -322,7 +333,7 @@ fn safe_up(dir: Vec3) -> Vec3 { if dir.normalize_or(Vec3::NEG_Y).y.abs() > 0.95 
 /// Unit cone along -Z (apex at the origin, radius 1 at length 1) whose vertex
 /// alpha fades from the apex to the base; scaled per frame to match a spot.
 fn beam_cone() -> Mesh {
-    const SIDES: usize = 28;
+    const SIDES: usize = 48;
     const RINGS: usize = 10;
     let mut positions = vec![]; let mut normals = vec![]; let mut colors = vec![]; let mut indices: Vec<u32> = vec![];
     for r in 0..=RINGS {
@@ -433,7 +444,7 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
             let Ok((handle, mut beam)) = beams.get_mut(child) else { continue };
             beam.scale = Vec3::new(radius, radius, len);
             if let Some(mut material) = materials.get_mut(&handle.0) {
-                material.base_color = Color::srgba(r, g, b, 0.13 * level);
+                material.base_color = Color::srgba(r, g, b, 0.035 * level);
             }
         }
     }
@@ -461,6 +472,18 @@ fn update_hud(show: Res<Show>, quality: Res<quality::Quality>, mut hud: Single<&
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn f1_hides_both_hud_elements() {
+        use bevy::prelude::*;
+        let mut app = App::new();
+        app.init_resource::<ButtonInput<KeyCode>>().add_systems(Update, super::toggle_hud);
+        let a = app.world_mut().spawn((super::HudOverlay, Visibility::Inherited)).id();
+        let b = app.world_mut().spawn((super::HudOverlay, Visibility::Inherited)).id();
+        app.world_mut().resource_mut::<ButtonInput<KeyCode>>().press(KeyCode::F1);
+        app.update();
+        assert_eq!(*app.world().entity(a).get::<Visibility>().unwrap(), Visibility::Hidden);
+        assert_eq!(*app.world().entity(b).get::<Visibility>().unwrap(), Visibility::Hidden);
+    }
     #[test]
     fn strobe_is_not_the_default_mode() { assert_eq!(super::Show::default().mode, 0); }
     #[test]

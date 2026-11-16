@@ -127,7 +127,9 @@ fn walls(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
                 let x = sx * (ROOM_X - 0.02);
                 let fr = shapes::path_frames(&[Vec3::new(x, 0.0, zc - w * 0.5), Vec3::new(x, 0.0, zc + w * 0.5)])
                     .into_iter().map(|f| shapes::Frame { side: Vec3::new(-sx, 0.0, 0.0), ..f }).collect::<Vec<_>>();
-                b.put(shapes::fluted_skin(&fr, 0.3, 2.45, 0.07, 0.02, 1.0 / tile::OAK), &s.oak);
+                let (surface, tile_size) = if k % 2 == 0 { (&s.oak, tile::OAK) }
+                    else { (&s.acoustic_charcoal, tile::ACOUSTIC) };
+                b.put(shapes::fluted_skin(&fr, 0.3, 2.45, 0.07, 0.02, 1.0 / tile_size), surface);
                 b.bx(Vec3::new(0.05, 0.03, w + 0.02), 0.01, &s.brass, Vec3::new(sx * (ROOM_X - 0.03), 2.47, zc), tile::BRASS);
             }
         }
@@ -179,6 +181,13 @@ fn ceiling(b: &mut B, s: &Surfaces, _neon: &Neon) {
             }
         }
     }
+    // Acoustic ceiling baffles sit in side lanes, clear of the central halo.
+    let baffle = b.meshes.add(shapes::rounded_box(Vec3::new(0.32,0.10,1.25),0.04,5,1.0 / tile::ACOUSTIC).build());
+    for x in [-9.2f32, 9.2] {
+        for z in [-7.5f32, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5] {
+            b.c.spawn((Mesh3d(baffle.clone()), MeshMaterial3d(s.acoustic_charcoal.clone()), Transform::from_xyz(x, CEILING - 0.18, z)));
+        }
+    }
     // Cable tray above the entrance side of the room.
     b.bx(Vec3::new(0.6, 0.08, 17.0), 0.02, &s.grille, Vec3::new(0.0, 6.88, 0.0), tile::GRILLE);
 }
@@ -189,8 +198,9 @@ fn back_wall(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
     // Backlit acoustic panels either side of the LED wall.
     for sx in [-1.0f32, 1.0] {
         for (i, x) in [6.8f32, 8.7, 10.6].into_iter().enumerate() {
-            let mat = if i == 1 { &bay.magenta } else { &bay.cyan };
-            b.bx(Vec3::new(1.7, 4.6, 0.04), 0.01, mat, Vec3::new(sx * x, 3.6, zw + 0.05), tile::BACKLIGHT);
+            let mat = if i == 1 { &bay.magenta } else { &s.acoustic_charcoal };
+            let material_tile = if i == 1 { tile::BACKLIGHT } else { tile::ACOUSTIC };
+            b.bx(Vec3::new(1.7, 4.6, 0.04), 0.01, mat, Vec3::new(sx * x, 3.6, zw + 0.05), material_tile);
             b.bx(Vec3::new(1.7, 4.6, 0.03), 0.005, &s.grille, Vec3::new(sx * x, 3.6, zw + 0.11), tile::GRILLE);
             b.bx(Vec3::new(0.12, 4.8, 0.14), 0.03, &s.darksteel, Vec3::new(sx * (x - 0.95), 3.6, zw + 0.08), tile::DARKSTEEL);
             // Layered arched surrounds add depth without projecting into the stage.
@@ -201,6 +211,16 @@ fn back_wall(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
             b.put(shapes::tube(&inner, 0.009, 8, 1.0), &neon.warm);
         }
         b.bx(Vec3::new(0.12, 4.8, 0.14), 0.03, &s.darksteel, Vec3::new(sx * 11.55, 3.6, zw + 0.08), tile::DARKSTEEL);
+    }
+    // A layered metal proscenium frames the screen and separates it from the
+    // structural wall. The edge details remain behind the stage collision.
+    for x in [-5.58f32, 5.58] {
+        b.bx(Vec3::new(0.18, 3.95, 0.18), 0.045, &s.darksteel, Vec3::new(x, 4.50, zw + 0.22), tile::DARKSTEEL);
+        b.put(shapes::tube(&[Vec3::new(x, 2.64, zw + 0.32), Vec3::new(x, 6.36, zw + 0.32)], 0.012, 12, 1.0 / tile::BRASS), &s.brass);
+    }
+    for y in [2.57f32, 6.43] {
+        b.bx(Vec3::new(11.30, 0.16, 0.18), 0.04, &s.darksteel, Vec3::new(0.0, y, zw + 0.22), tile::DARKSTEEL);
+        b.put(shapes::tube(&[Vec3::new(-5.52, y, zw + 0.32), Vec3::new(5.52, y, zw + 0.32)], 0.009, 10, 1.0 / tile::BRASS), &s.brass);
     }
     // Concrete plinth with a LED line below the LED wall.
     b.bx(Vec3::new(12.2, 0.5, 0.22), 0.05, &s.darksteel, Vec3::new(0.0, 2.35, zw + 0.11), tile::DARKSTEEL);

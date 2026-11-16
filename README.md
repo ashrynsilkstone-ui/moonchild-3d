@@ -6,11 +6,11 @@ Ein begehbarer Club in Rust und Bevy 0.20.1, gestaltet als Luxus-Lounge mit Neon
 
 ## Stand auf einen Blick (16. November 2026)
 
-- **Gestaltung:** Luxus-Lounge 2026. Samt- und Bouclé-Sofas, Messing, schwarzer Marmor, Terrazzo, geriffelte Eiche, Rauch- und Opalglas. Dazu Neon-Akzente in Cyan, Magenta und warmem Rot.
+- **Gestaltung:** Luxus-Lounge 2026. Leder-, Samt- und Bouclé-Sofas, Messing, schwarzer Marmor, Terrazzo, geriffelte Eiche, Rauch- und Opalglas. Dazu Neon-Akzente in Cyan, Magenta und warmem Rot.
 - **Rendering:** Deferred Rendering mit Bildschirm-Spiegelungen (SSR), volumetrischem Licht im Club-Dunst, HDR, Bloom, TAA, SSAO und Contact Shadows.
 - **Qualitätsstufen:** Mittel, Hoch und Ultra, im Spiel mit F2 umschaltbar. Mesh-LOD für fein gerundete, wiederholte Teile.
 - **Branch:** `main` enthält den Lounge-Ausbau und die anschließenden Bühnen- und Lichtverbesserungen.
-- **Geprüft:** `cargo check --locked`, `cargo test --locked` (18 Tests) und `cargo build --locked` auf Linux. Der Spielstart in Mittel wurde mit Software-Vulkan geprüft. Bildrate und Aussehen auf echter Hardware sind für den aktuellen Stand noch ungeprüft (siehe [Prüfstand](#prüfstand)).
+- **Geprüft:** `cargo check --locked`, `cargo test --locked` (23 Tests) und `cargo build --locked` auf Linux. Der Spielstart und vier Aufnahmen in Mittel sowie ein zeitbegrenzter Hoch-Starttest wurden mit Software-Vulkan geprüft. Bildrate und Aussehen auf echter Hardware sind ungeprüft (siehe [Prüfstand](#prüfstand)).
 
 ## Start auf CachyOS / Arch Linux
 
@@ -41,6 +41,7 @@ cargo run --release
 | 8 | Ruhiges Lichtprogramm Lounge |
 | L | Show-Licht an/aus; das warme Grundlicht bleibt an |
 | + / - | Tempo und BPM |
+| F1 | Bedienungsanzeige ein- und ausblenden |
 | F2 | Grafikqualität: Mittel → Hoch → Ultra |
 | Escape | Beenden |
 
@@ -65,10 +66,10 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 - Schwebende Treppe mit Riffelblech-Stufen, Handläufen mit Cyan-Glow und warmer Lichtkante an jeder Stufe.
 
 **Lounges** (vier geschwungene „Cloud“-Sofas)
-- Auf der Galerie weinroter Samt mit Bouclé-Kissen, unten cremefarbenes Bouclé mit Samtkissen.
+- Auf der Galerie weinrotes Leder mit Bouclé-Kissen, unten cremefarbenes Bouclé mit Samtkissen.
 - Sitz- und geneigte Rückenkissen sind weich geformte Superquadriken, die auf den Bogen gebogen werden, sodass keine Keilspalten entstehen. Dazu Endrollen und Dekokissen.
 - Gepolsterter Sockel auf Messing-Fußleiste mit Lichtfuge, Messing-Paspel an der Rückenoberkante.
-- Kleine prozedurale Pflanzenarrangements in Messingvasen auf den bestehenden Couchtischen. Die Blätter besitzen ein einfaches grünes PBR-Material; sie sind keine Fotoscans.
+- Kleine prozedurale Pflanzenarrangements in Messingvasen auf den bestehenden Couchtischen. Die Blätter verwenden eigene Farb-, Normal- und Rauheitskarten; sie sind keine Fotoscans.
 - Couchtisch mit geriffeltem Messingfuß, Marmorplatte, Lichtring und Rauchglaslaterne. Über den Galerie-Lounges je drei Kugelleuchten aus Opalglas.
 
 **Bar**
@@ -145,6 +146,8 @@ Die Nahstufe ist dicht tesselliert, Sofakissen haben zum Beispiel rund 3000 Drei
 | `stage_screen` | 2048×1024 | Einzelmotiv | eigene Emissionsgrafik auf dem Bühnenbildschirm |
 | `bottle_label` | 1024×512 | Einzelmotiv | eigene Moonchild-Etiketten auf den Barflaschen |
 | `foliage` | 1024² | Einzelblatt | Blatt mit Adern: Base-Color-, Normal- und ORM-Map (Tischpflanzen) |
+| `leather_burgundy` | 1024² | 0,5 m | eigenes bordeauxfarbenes Leder mit Narbung und abgestimmter Rauheit (Galerie-Sofas) |
+| `acoustic_charcoal` | 1024² | 0,5 m | eigenes dunkles Gewebe für akustische Wand- und Deckenelemente |
 | `velvet` | 1024² | 0,5 m | weinroter Samt mit gedrücktem Flor |
 | `boucle` | 1024² | 0,3 m | cremefarbenes Bouclé aus Garnschlaufen |
 | `brass` | 1024² | 1 m | gebürstetes, leicht lackiertes Messing mit zarter Patina |
@@ -162,7 +165,7 @@ Die Nahstufe ist dicht tesselliert, Sofakissen haben zum Beispiel rund 3000 Drei
 - **Mipmaps:** PNGs enthalten keine. `look::generate_mipmaps` baut beim Laden eine Mipmap-Kette (für Normalmaps renormiert) und aktiviert 16-fache anisotrope Filterung.
 - **Maßstab:** UVs sind in Metern angelegt und über `look::tile` skaliert. Jedes Material hat dadurch überall denselben Maßstab.
 - **Klarlack:** Terrazzo, Marmor und Eiche haben eine Klarlackschicht, am glänzendsten der Marmor der Tanzfläche.
-- **Ohne Textur:** Rauchglas (Regale, Laternen), Opalglas (Kugelleuchten), poliertes Messing (Säulen, Tischfüße).
+- **Ohne Textur:** Rauchglas (Regale, Laternen), Klarglas (Bar), Opalglas (Kugelleuchten), poliertes Messing (Säulen, Tischfüße).
 - **DJ-Faceplates:** liegen unter `assets/textures/dj/` und kommen aus `tools/generate_dj_textures.py`.
 
 ## Bewegung und Kollision
@@ -207,6 +210,7 @@ python3 tools/generate_textures.py
 python3 tools/generate_foliage.py
 python3 tools/generate_bottle_label.py
 python3 tools/generate_stage_screen.py
+python3 tools/generate_overhaul_materials.py
 ```
 
 ```bash
@@ -217,7 +221,7 @@ python3 tools/generate_textures.py velvet marble
 - `MOONCHILD_TEX_SCALE` (Standard 2) skaliert die Auflösung, alle pixelbasierten Größen skalieren mit. Mit `1` entsteht die halbe Auflösung bei gleichem Aussehen.
 - Die ausgemusterten Sets `floor` und `leather` werden nicht mehr ausgeliefert, lassen sich aber per Name noch erzeugen.
 
-**Screenshot-Rundgang** aus dem laufenden Spiel:
+**Screenshot-Rundgang** aus dem laufenden Spiel (optional ohne Anzeige mit `MOONCHILD_HIDE_HUD=1`; F1 blendet sie im Spiel wieder ein):
 
 ```bash
 MOONCHILD_SHOTS=<Ordner> cargo run --release
@@ -307,3 +311,15 @@ Das Biegen der Sofakissen verändert die Händigkeit des lokalen Koordinatensyst
 Die grobe Bildschirm-Kachelmatrix wurde durch eine eigene 2048×1024-Emissionsgrafik und 60 kleine animierte Pegelleuchten ersetzt. Die Decken- und Showlichtprogramme sowie das warmweiße Grundlicht bleiben bestehen. Die Grafik ist eine eigene Illustration und kein Fotoscan; die Balken sind eine Showanimation und nicht audiosynchron.
 
 Prüfung dieses Stands: `cargo check --locked`, `cargo test --locked` (21 bestanden) und `cargo build --locked` liefen auf Ubuntu erfolgreich. Der Spielstand wurde mit Mesa llvmpipe/Vulkan in Mittel bei 960×600 gestartet. Aufnahmen der unteren und oberen Lounge sowie der Bühnenansicht liegen als `37_*.jpg` bis `39_*.jpg` unter `docs/screenshots/`. Im Vergleich mit der vorherigen Aufnahme sind die Sitzflächen sichtbar und die zuvor erkennbaren kleinen dreieckigen Flecken dort nicht mehr zu sehen. Der Softwarelauf belegt keine bestimmte Grafikqualität oder Bildrate auf der RX 9070 XT. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43897544059).
+
+## Szenenüberarbeitung: Material und Raum
+
+Die Galerie-Sofas verwenden bordeauxfarbene Lederkarten mit Narbung, Normal- und Rauheitsstruktur und einer dezenten Klarlackschicht. Ein zweites neues PBR-Set bildet dunklen Akustikstoff für Teile der Wand- und Deckenverkleidung. Beide Sets sind selbst erzeugt, kachelbar und enthalten Base Color, Normal und ORM; der Generator ist `tools/generate_overhaul_materials.py`. Die gekrümmten Sofas besitzen zusätzliche Paspeln und flache, gewebte Teppiche. Hinter der Bühne gibt ein geschichteter Stahl- und Messingrahmen dem Bildschirm mehr Tiefe; auch die Bar besitzt zusätzliche Gläser und einen Shaker.
+
+In der Stufe Mittel sind die einfachen Lichtkegel zurückhaltender, damit ihre zuvor flächigen Überlagerungen die Architektur weniger stark verdecken. Hoch und Ultra verwenden weiterhin die vorhandenen volumetrischen Lichtstrahlen. Die warme Grundbeleuchtung, Bewegungssteuerung, Sprünge und die bestehenden Kollisionsmaße bleiben erhalten. Die neuen Dekorationen liegen an Wänden, an der Decke oder innerhalb bestehender Möbel- und Bühnenbereiche.
+
+Diese Änderungen sind eine Weiterentwicklung des Bevy-Projekts; eine Grafikqualität wie Resident Evil Requiem, Fotorealismus, Raytracing oder eine bestimmte Bildrate werden damit nicht behauptet.
+
+Prüfung dieser Überarbeitung: Auf Ubuntu liefen `cargo check --locked`, `cargo test --locked` (23 bestanden) und `cargo build --locked`. Vier Screenshots in Mittel bei 960×600 wurden aus dem laufenden Spiel mit Mesa llvmpipe/Vulkan und ausgeschaltetem HUD erstellt (`docs/screenshots/40_overhaul_stage.jpg` bis `43_overhaul_upper.jpg`). Hoch wurde mit geladenen Assets im Rahmen eines zeitbegrenzten Software-Starttests geprüft; dabei wurde kein Hoch-Screenshot und keine aussagekräftige FPS-Messung erstellt. Die Materialdateien wurden zweimal erzeugt und per SHA-256 verglichen. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43919457048).
+
+**Stand der Zielerreichung:** Die überprüften Aufnahmen bleiben sichtbar stilisiert und reichen nicht an die gewünschte fotorealistische AAA-Referenz heran. Insbesondere die Proportionen, die noch einfachen Bühnenelemente, die Beleuchtung und die Material- und Umgebungsdetails benötigen weitere Arbeit. Der bisherige Renderpfad verwendet keine hardwarebasierte globale Beleuchtung oder Raytracing. Die Bilder und der Softwaretest belegen keine bestimmte Bildrate oder das Erscheinungsbild auf der RX 9070 XT.
