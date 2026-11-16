@@ -55,7 +55,29 @@ pub fn repeat_sampler() -> ImageSamplerDescriptor {
     }
 }
 
+/// Optional render/window size. Invalid inputs fall back to Full HD.
+fn parse_resolution(value: &str) -> Option<(u32, u32)> {
+    let (w, h) = value.trim().split_once(|c| c == 'x' || c == 'X')?;
+    let (w, h) = (w.trim().parse::<u32>().ok()?, h.trim().parse::<u32>().ok()?);
+    if (640..=7680).contains(&w) && (360..=4320).contains(&h) { Some((w, h)) } else { None }
+}
+
+#[cfg(test)]
+mod resolution_tests {
+    use super::parse_resolution;
+    #[test]
+    fn accepts_supported_sizes_and_rejects_invalid_values() {
+        assert_eq!(parse_resolution("2560x1440"), Some((2560, 1440)));
+        assert_eq!(parse_resolution(" 1920 X 1080 "), Some((1920, 1080)));
+        for invalid in ["0x0", "9000x9000", "1920", "abcx1080", "1920x1080x2"] {
+            assert_eq!(parse_resolution(invalid), None);
+        }
+    }
+}
+
 fn main() {
+    let resolution = std::env::var("MOONCHILD_RESOLUTION").ok()
+        .and_then(|value| parse_resolution(&value)).unwrap_or((1920, 1080));
     let tour = capture::Tour::from_env();
     let present_mode = if tour.is_some() { bevy::window::PresentMode::AutoNoVsync } else { bevy::window::PresentMode::AutoVsync };
     let mut app = App::new();
@@ -63,7 +85,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin { default_sampler: repeat_sampler() }).set(WindowPlugin {
             primary_window: Some(Window {
                 title: "MOONCHILD | Rust 3D Club".into(),
-                resolution: (1440, 900).into(),
+                resolution: resolution.into(),
                 present_mode,
                 ..default()
             }),

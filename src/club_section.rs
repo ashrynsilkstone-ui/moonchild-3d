@@ -70,12 +70,11 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
     dance_floor(&mut cx, s, neon);
     gallery(&mut cx, s, neon, &bulb);
     stairs(&mut cx, s, neon);
-    let foliage = materials.add(StandardMaterial { base_color: Color::srgb(0.09, 0.25, 0.14), perceptual_roughness: 0.78, ..default() });
-    let leaf_mesh = cx.mesh(shapes::cushion(Vec3::new(0.035, 0.012, 0.105), 0.65, 0.8, 14, 1.0));
+    let leaf_mesh = cx.mesh_pair(|n| shapes::leaf(0.21, 0.07, n, n / 4), 48, 12);
     for (i, &(x, y, z)) in LOUNGES.iter().enumerate() {
         let centre = Vec3::new(x, y, z);
         lounge(&mut cx, s, neon, &bulb, centre, i);
-        table_plant(&mut cx, s, &foliage, &leaf_mesh, centre);
+        table_plant(&mut cx, s, &leaf_mesh, centre);
     }
     bar(&mut cx, s, neon, &glass, &bulb);
     halo(&mut cx, s, neon, &bulb);
@@ -85,31 +84,29 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
 }
 
 /// Small foliage arrangement contained within the existing table collision.
-fn table_plant(cx: &mut Ctx, s: &Surfaces, leaf: &Handle<StandardMaterial>, mesh: &Handle<Mesh>, table: Vec3) {
+fn table_plant(cx: &mut Ctx, s: &Surfaces, mesh: &(Handle<Mesh>, Handle<Mesh>), table: Vec3) {
     let centre = table + Vec3::new(0.23, LOUNGE_TABLE_TOP, -0.10);
     let vase = shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.075, 0.0), Vec2::new(0.085, 0.025),
         Vec2::new(0.065, 0.14), Vec2::new(0.045, 0.16), Vec2::new(0.0, 0.16)], 32, uv(tile::BRASS));
     cx.put_at(vase, &s.brass, Transform::from_translation(centre));
-    // Reuse a single smoothly rounded leaf mesh and vary the pose rather than
-    // making hundreds of unique meshes; the arrangement stays over the tabletop.
+    // Reuse both leaf meshes; retain a simpler visible leaf at a distance.
     for i in 0..9 {
         let angle = i as f32 * 2.399_963_1;
         let r = 0.035 + 0.018 * (i % 3) as f32;
         let pos = centre + Vec3::new(angle.cos() * r, 0.18 + 0.018 * (i % 3) as f32, angle.sin() * r);
         let rotation = Quat::from_rotation_y(-angle + FRAC_PI_2) * Quat::from_rotation_x(0.42 + 0.12 * (i % 3) as f32);
-        cx.c.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(leaf.clone()), Transform::from_translation(pos).with_rotation(rotation),
-            bevy::light::NotShadowCaster, lod::near(lod::SMALL, false)));
+        cx.spawn_lod(&mesh.0, &mesh.1, &s.foliage, Transform::from_translation(pos).with_rotation(rotation), lod::SMALL, false);
     }
 }
 
 // ------------------------------------------------------------------ dance floor
 fn dance_floor(cx: &mut Ctx, s: &Surfaces, neon: &Neon) {
     let c = Vec3::new(DANCE_CENTER.0, 0.0, DANCE_CENTER.1);
-    cx.put(shapes::annulus(c + Vec3::Y * DANCE_TOP, 0.0, DANCE_RADIUS, 0.0, TAU, 128, uv(tile::FLOOR)), &s.dance_floor);
+    cx.put(shapes::annulus(c + Vec3::Y * DANCE_TOP, 0.0, DANCE_RADIUS, 0.0, TAU, 192, uv(tile::FLOOR)), &s.dance_floor);
     // Rounded steel nosing around the disc.
     let edge = [Vec2::new(DANCE_RADIUS + 0.06, 0.0), Vec2::new(DANCE_RADIUS + 0.06, 0.012), Vec2::new(DANCE_RADIUS + 0.035, DANCE_TOP),
         Vec2::new(DANCE_RADIUS - 0.01, DANCE_TOP + 0.0005)];
-    cx.put_at(shapes::lathe(&edge, 160, uv(tile::STEEL)), &s.steel, Transform::from_translation(c));
+    cx.put_at(shapes::lathe(&edge, 192, uv(tile::STEEL)), &s.steel, Transform::from_translation(c));
     // Concentric and radial LED inlays, lifted clear of the surface.
     let led_y = DANCE_TOP + FLOOR_LED_LIFT;
     for (i, r) in [1.6, 3.2, 4.72].into_iter().enumerate() {
@@ -290,16 +287,16 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
         let am = a0 + 0.08 + span * (k as f32 + 0.5);
         let seat = |res: usize| bend(moved(shapes::cushion(Vec3::new(len * 0.5 - 0.01, 0.085, 0.3), 0.22, 0.5, res, uv(fabric_tile)),
             Vec3::new(0.0, 0.355, -0.02)), centre, r, am);
-        cx.put_lod(seat(56), seat(14), fabric, Transform::IDENTITY, lod::LARGE, true);
+        cx.put_lod(seat(80), seat(14), fabric, Transform::IDENTITY, lod::LARGE, true);
         let backc = |res: usize| bend(tilt(moved(shapes::cushion(Vec3::new(len * 0.5 - 0.015, 0.22, 0.09), 0.25, 0.6, res, uv(fabric_tile)),
             Vec3::new(0.0, 0.68, 0.25)), 0.2, Vec3::new(0.0, 0.45, 0.25)), centre, r, am);
-        cx.put_lod(backc(56), backc(14), fabric, Transform::IDENTITY, lod::LARGE, true);
+        cx.put_lod(backc(80), backc(14), fabric, Transform::IDENTITY, lod::LARGE, true);
     }
     // Round bolsters closing both ends.
     for (a, dir) in [(a0, 1.0f32), (a1, -1.0)] {
         let am = a + dir * 0.04;
         let bolster = |res: usize| bend(moved(shapes::cushion(Vec3::new(0.09, 0.2, 0.36), 0.6, 0.7, res, uv(fabric_tile)), Vec3::new(0.0, 0.47, 0.04)), centre, r, am);
-        cx.put_lod(bolster(48), bolster(12), fabric, Transform::IDENTITY, lod::LARGE, true);
+        cx.put_lod(bolster(64), bolster(12), fabric, Transform::IDENTITY, lod::LARGE, true);
     }
     // Throw pillows in the accent fabric, leaning against the back cushions.
     for (k, (frac, yaw)) in [(0.18f32, 0.25f32), (0.5, -0.15), (0.82, 0.2)].into_iter().enumerate() {
@@ -313,7 +310,7 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
             for (p, n) in m.positions.iter_mut().zip(m.normals.iter_mut()) { *p = (q * Vec3::from(*p)).to_array(); *n = (q * Vec3::from(*n)).to_array(); }
             bend(moved(m, Vec3::new(0.0, 0.64, 0.1 + 0.02 * k as f32)), centre, r, am)
         };
-        cx.put_lod(pillow(40), pillow(10), accent, Transform::IDENTITY, lod::MEDIUM, true);
+        cx.put_lod(pillow(56), pillow(10), accent, Transform::IDENTITY, lod::MEDIUM, true);
     }
 
     // Coffee table: fluted brass drum and an eased marble top.

@@ -53,6 +53,7 @@ pub struct Surfaces {
     pub oak: Handle<StandardMaterial>,
     pub smoked_glass: Handle<StandardMaterial>,
     pub opal: Handle<StandardMaterial>,
+    pub foliage: Handle<StandardMaterial>,
 }
 
 struct Maps { base: Handle<Image>, normal: Handle<Image>, orm: Handle<Image> }
@@ -97,6 +98,7 @@ impl Surfaces {
         let terrazzo = load_maps(server, queue, "terrazzo");
         let marble = load_maps(server, queue, "marble");
         let oak = load_maps(server, queue, "oak");
+        let foliage = load_maps(server, queue, "foliage");
         let back_emissive: Handle<Image> = server.load("textures/moonchild/backlight_emissive.png");
         queue.0.push((back_emissive.id(), false));
         let backlight = |materials: &mut Assets<StandardMaterial>, c: LinearRgba| materials.add(StandardMaterial {
@@ -126,6 +128,7 @@ impl Surfaces {
             brass: materials.add(pbr_from(&brass)),
             brass_polished: materials.add(StandardMaterial { base_color: Color::srgb(0.86, 0.66, 0.36), metallic: 1.0, perceptual_roughness: 0.22, ..default() }),
             marble: materials.add(StandardMaterial { clearcoat: 0.7, clearcoat_perceptual_roughness: 0.06, ..pbr_from(&marble) }),
+            foliage: materials.add(StandardMaterial { double_sided: true, cull_mode: None, ..pbr_from(&foliage) }),
             oak: materials.add(StandardMaterial { clearcoat: 0.15, clearcoat_perceptual_roughness: 0.4, ..pbr_from(&oak) }),
             smoked_glass: materials.add(StandardMaterial {
                 base_color: Color::srgba(0.10, 0.085, 0.07, 0.42), alpha_mode: AlphaMode::Blend, perceptual_roughness: 0.04,

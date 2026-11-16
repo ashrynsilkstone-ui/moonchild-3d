@@ -1,0 +1,37 @@
+name: Moonchild lounge checks
+on: [push, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      RUSTFLAGS: -C link-arg=-fuse-ld=lld
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev lld
+      - name: Check project
+        run: cargo check --locked
+      - name: Test project
+        run: cargo test --locked
+      - name: Build project
+        run: cargo build --locked
+      - name: Install software graphics dependencies
+        run: sudo apt-get install -y --no-install-recommends xvfb libxkbcommon-x11-0 mesa-vulkan-drivers python3-pil
+      - name: Capture the running game
+        run: |
+          mkdir -p /tmp/moonchild-shots
+          export BEVY_ASSET_ROOT="$PWD" MOONCHILD_SHOTS=/tmp/moonchild-shots MOONCHILD_SHOT_FILTER=31_lounge_table MOONCHILD_RESOLUTION=960x600 MOONCHILD_SHOT_FAST=1 MOONCHILD_QUALITY=mittel
+          timeout 420s xvfb-run -a -s '-screen 0 960x600x24' target/debug/moonchild-3d > /tmp/moonchild.log 2>&1 || { cat /tmp/moonchild.log; exit 1; }
+          cat /tmp/moonchild.log
+          if grep -E 'Path not found:|panicked at' /tmp/moonchild.log; then exit 1; fi
+          test -s /tmp/moonchild-shots/31_lounge_table.png
+          for shot in 31_lounge_table; do
+            /usr/bin/python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]); im.thumbnail((960,600)); im.convert("RGB").save(sys.argv[2],quality=75)' "/tmp/moonchild-shots/$shot.png" "/tmp/$shot.jpg"
+            echo "GAME_SCREENSHOT_BEGIN $shot"
+            base64 -w0 "/tmp/$shot.jpg"
+            echo
+            echo "GAME_SCREENSHOT_END $shot"
+          done
