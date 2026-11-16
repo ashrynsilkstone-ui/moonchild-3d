@@ -347,5 +347,134 @@ def backlight():
              emissive=np.dstack([e, e, e]))
 
 
+
+
+# ---------------------------------------------------------------- luxury lounge materials (2026 redesign)
+def velvet():
+    """Deep wine-red cotton velvet with crushed pile and fine fibres. Tile = 0.5 m."""
+    n = 512 * S
+    fibre = spectral(n, 101, beta=0.2, fmin=120)
+    crush = blur(spectral(n, 102, beta=2.2, fmin=2, fmax=30), 2.0, 6.0)
+    pile = spectral(n, 103, beta=1.4, fmin=6, fmax=80, aniso=(1.0, 2.5))
+    height = 0.12 * fibre + 0.5 * crush + 0.2 * pile
+    # Crushed pile reads lighter where the fibres lie flat.
+    variation = 1.0 + 0.16 * crush + 0.07 * pile + 0.04 * fibre
+    albedo = tint([104, 18, 38], np.clip(variation, 0.55, 1.5))
+    rough = 0.82 - 0.08 * np.clip(crush, 0, None) + 0.03 * fibre
+    ao = cavity_ao(height, 2, 0.15)
+    save_set('velvet', albedo, height, 1.0, rough, 0.0, ao)
+
+
+def boucle():
+    """Cream boucle upholstery: densely packed yarn loops. Tile = 0.3 m."""
+    n = 512 * S
+    f1, f2, cid = voronoi(n, 70, 111)
+    loops = np.clip(1.0 - np.abs(f1 - 0.32) / 0.12, 0, 1)
+    f1b, _, _ = voronoi(n, 130, 112)
+    loops2 = np.clip(1.0 - np.abs(f1b - 0.3) / 0.14, 0, 1)
+    rng = np.random.default_rng(113)
+    tone = rng.normal(0, 1, size=cid.max() + 1)[cid]
+    weave = spectral(n, 114, beta=1.0, fmin=30, fmax=200)
+    height = 0.9 * loops + 0.5 * loops2 + 0.1 * weave
+    variation = 1.0 + 0.10 * loops + 0.05 * loops2 + 0.03 * tone + 0.03 * weave - 0.12 * (1 - np.maximum(loops, loops2))
+    albedo = tint([214, 204, 186], np.clip(variation, 0.6, 1.3))
+    rough = 0.9 - 0.05 * loops
+    ao = cavity_ao(height, 2.5, 0.3)
+    save_set('boucle', albedo, height, 2.0, rough, 0.0, ao)
+
+
+def brass():
+    """Brushed, lightly lacquered brass with faint tarnish. Tile = 1 m; brushing along U."""
+    n = 512 * S
+    rng = np.random.default_rng(121)
+    brushed = blur(rng.standard_normal((n, n)), 50, 0.6); brushed = (brushed - brushed.mean()) / brushed.std()
+    fine = blur(rng.standard_normal((n, n)), 10, 0.4); fine /= fine.std()
+    tarnish = np.clip(spectral(n, 122, beta=3.0, fmin=1, fmax=10) - 0.6, 0, None)
+    segs = []
+    for _ in range(80):
+        x0, y0 = rng.uniform(0, n, 2); ang = rng.uniform(0, np.pi); ln = (rng.exponential(20) + 3) * S
+        segs.append((x0, y0, x0 + np.cos(ang) * ln, y0 + np.sin(ang) * ln, rng.uniform(0.3, 1)))
+    scratches = wrapped_lines(n, segs, 1.0)
+    height = 0.3 * brushed + 0.2 * fine - 0.5 * scratches
+    variation = 1.0 + 0.04 * brushed + 0.03 * fine - 0.18 * tarnish
+    albedo = tint([236, 186, 104], np.clip(variation, 0.6, 1.2))
+    rough = 0.24 + 0.04 * fine + 0.12 * tarnish + 0.1 * scratches
+    ao = np.ones((n, n)) * 0.98
+    save_set('brass', albedo, height, 0.8, rough, 1.0, ao)
+
+
+def terrazzo():
+    """Polished charcoal terrazzo with marble, brass-coloured and wine chips. Tile = 2 m."""
+    n = 1024 * S
+    cloud = spectral(n, 131, beta=3.0, fmin=1, fmax=10)
+    resin_grain = spectral(n, 132, beta=0.8, fmin=80)
+    albedo = tint([40, 41, 44], np.clip(1.0 + 0.08 * cloud + 0.03 * resin_grain, 0.6, 1.4))
+    rough = 0.16 + 0.03 * resin_grain
+    height = 0.05 * resin_grain
+    palette = [([200, 198, 192], 0.55), ([150, 150, 148], 0.25), ([170, 120, 60], 0.10), ([110, 28, 40], 0.10)]
+    rng = np.random.default_rng(133)
+    for cells, size, seed, every in [(70, 0.26, 134, 5), (180, 0.22, 135, 4), (420, 0.2, 136, 3)]:
+        f1, f2, cid = voronoi(n, cells, seed)
+        # Irregular chips: Voronoi cells shrunk towards their seed, a subset only.
+        keep = (cid % every) == 0
+        chip = (f1 < size + 0.06 * spectral(n, seed + 50, beta=1.0, fmin=cells, fmax=cells * 4)) & keep
+        choice = rng.choice(len(palette), size=cid.max() + 1, p=[w for _, w in palette])[cid]
+        for k, (rgb, _) in enumerate(palette):
+            m = chip & (choice == k)
+            shade = 1.0 + 0.1 * rng.normal(0, 1, size=cid.max() + 1)[cid]
+            albedo[m] = (lin(rgb)[None, :] * shade[m][:, None])
+        rough = np.where(chip, 0.10, rough)
+        height = height + 0.15 * chip
+    ao = cavity_ao(height, 2, 0.1)
+    # Polished flat: chips barely stand proud, which avoids specular sparkle.
+    save_set('terrazzo', albedo, blur(height, 1.2), 0.2, np.clip(blur(rough, 0.8), 0.1, 1), 0.0, ao)
+
+
+def marble():
+    """Polished Nero Marquina style marble: black with warped white veins. Tile = 2 m."""
+    n = 1024 * S
+    base = spectral(n, 141, beta=2.8, fmin=1, fmax=16)
+    warp1 = spectral(n, 142, beta=3.0, fmin=1, fmax=8)
+    warp2 = spectral(n, 143, beta=2.2, fmin=2, fmax=30)
+    y, x = np.mgrid[0:n, 0:n] / n
+    # Periodic diagonal bands warped by noise give branching veins.
+    phase = 2 * np.pi * (1 * x + 1 * y) + 1.1 * warp1 + 0.35 * warp2
+    vein = np.exp(-(np.sin(phase) / 0.035) ** 2) * np.clip(0.6 + 0.6 * base, 0, 1)
+    phase2 = 2 * np.pi * (2 * x - 1 * y) + 0.9 * warp2 + 0.6 * warp1
+    vein2 = 0.35 * np.exp(-(np.sin(phase2) / 0.02) ** 2)
+    fine = np.clip(spectral(n, 144, beta=1.2, fmin=20, fmax=300) - 1.8, 0, None)
+    veins = np.clip(vein + vein2 + 0.4 * fine, 0, 1)
+    variation = 0.9 + 0.12 * base
+    albedo = tint([22, 22, 24], np.clip(variation, 0.6, 1.3)) * (1 - veins[:, :, None]) + lin([226, 222, 214])[None, None, :] * veins[:, :, None]
+    rough = 0.07 + 0.03 * veins
+    height = 0.03 * base
+    save_set('marble', albedo, height, 0.3, rough, 0.0, np.ones((n, n)))
+
+
+def oak():
+    """Smoked, oiled oak with vertical grain (along V) for fluted panels. Tile = 1 m."""
+    n = 512 * S
+    grain = spectral(n, 151, beta=1.6, fmin=2, fmax=200, aniso=(0.04, 1.0))
+    rings = spectral(n, 152, beta=2.4, fmin=1, fmax=40, aniso=(0.08, 1.0))
+    pores = np.clip(spectral(n, 153, beta=0.6, fmin=80, aniso=(0.15, 1.0)) - 1.4, 0, None)
+    figure = spectral(n, 154, beta=3.0, fmin=1, fmax=6)
+    height = 0.3 * grain + 0.2 * rings - 0.6 * pores
+    variation = 1.0 + 0.18 * grain + 0.12 * rings + 0.06 * figure - 0.3 * pores
+    albedo = tint([96, 66, 44], np.clip(variation, 0.45, 1.6))
+    rough = 0.52 + 0.06 * grain + 0.15 * pores
+    ao = cavity_ao(height, 2, 0.2)
+    save_set('oak', albedo, height, 1.2, rough, 0.0, ao)
+
+
+# Shipped sets. `floor` (polished concrete) and `leather` are retired since the
+# luxury-lounge redesign but can still be generated by name.
+ALL = [concrete, steel, darksteel, grille, treadplate, backlight,
+       velvet, boucle, brass, terrazzo, marble, oak]
+EXTRA = [floor, leather]
+
 if __name__ == '__main__':
-    concrete(); floor(); steel(); darksteel(); leather(); grille(); treadplate(); backlight()
+    import sys
+    wanted = set(sys.argv[1:])
+    for f in ALL + EXTRA:
+        if (not wanted and f in ALL) or f.__name__ in wanted:
+            f()

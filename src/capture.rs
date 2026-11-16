@@ -1,7 +1,7 @@
 //! Optional screenshot tour for visual checks from the running game.
 //!
 //! Start with `MOONCHILD_SHOTS=<directory> cargo run --release`;
-//! `MOONCHILD_SHOT_FILTER=<text>` limits the tour to matching viewpoints,
+//! `MOONCHILD_SHOT_FILTER=<text>[,<text>...]` limits the tour to matching viewpoints,
 //! `MOONCHILD_SHOT_FAST=1` shortens the waits for slow software renderers.
 //! The camera visits fixed viewpoints, waits until the scene has settled,
 //! measures the average frame time over a short window (V-Sync is disabled
@@ -52,7 +52,9 @@ impl Tour {
         let dir = PathBuf::from(std::env::var_os("MOONCHILD_SHOTS")?);
         fs::create_dir_all(&dir).ok()?;
         let filter = std::env::var("MOONCHILD_SHOT_FILTER").unwrap_or_default();
-        let shots = viewpoints().into_iter().filter(|s| s.name.contains(filter.as_str())).collect();
+        // Comma-separated: a shot is taken if its name contains any of the parts.
+        let parts: Vec<&str> = filter.split(',').map(str::trim).collect();
+        let shots = viewpoints().into_iter().filter(|s| parts.iter().any(|p| s.name.contains(p))).collect();
         Some(Self { dir, shots, index: 0, frame: 0, timer: None, report: String::new() })
     }
 }

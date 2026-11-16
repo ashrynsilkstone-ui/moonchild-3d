@@ -312,6 +312,173 @@ pub fn ribbon(a: &[Vec3], b: &[Vec3], normal: Vec3, uv_scale: f32) -> MeshData {
     m
 }
 
+/// Signed power used by superquadrics.
+fn spow(v: f32, e: f32) -> f32 { v.signum() * v.abs().powf(e) }
+
+/// Upholstery cushion as a superquadric: `half` extents, `e_round` controls
+/// how boxy the horizontal outline is (0.2 boxy .. 1.0 round), `e_puff` how
+/// soft the vertical profile is. Dense, smooth and watertight; box-projected
+/// UVs in metres. `res` is the number of segments around.
+pub fn cushion(half: Vec3, e_round: f32, e_puff: f32, res: usize, uv_scale: f32) -> MeshData {
+    let mut m = MeshData::default();
+    let rings = (res / 2).max(4);
+    for i in 0..=rings {
+        let u = -std::f32::consts::FRAC_PI_2 + std::f32::consts::PI * i as f32 / rings as f32;
+        let (su, cu) = u.sin_cos();
+        for j in 0..=res {
+            let v = -std::f32::consts::PI + TAU * j as f32 / res as f32;
+            let (sv, cv) = v.sin_cos();
+            let p = Vec3::new(half.x * spow(cu, e_puff) * spow(cv, e_round), half.y * spow(su, e_puff), half.z * spow(cu, e_puff) * spow(sv, e_round));
+            // Normal of the implicit superquadric surface.
+            let n = Vec3::new(spow(cu, 2.0 - e_puff) * spow(cv, 2.0 - e_round) / half.x, spow(su, 2.0 - e_puff) / half.y,
+                spow(cu, 2.0 - e_puff) * spow(sv, 2.0 - e_round) / half.z);
+            let n = if n.length_squared() < 1e-12 { Vec3::new(0.0, su.signum(), 0.0) } else { n.normalize() };
+            let a = n.abs();
+            let uv = if a.y >= a.x && a.y >= a.z { Vec2::new(p.x, p.z) } else if a.x >= a.z { Vec2::new(p.z, -p.y) } else { Vec2::new(p.x, -p.y) };
+            m.vertex(p, n, uv * uv_scale);
+        }
+    }
+    m.grid(0, rings + 1, res + 1, false);
+    fix_winding(&mut m);
+    m
+}
+
+/// Lathe with vertical flutes: radius `r(y)` from `profile` minus a rounded
+/// groove repeated `flutes` times around. For fluted brass bases and columns.
+pub fn fluted_lathe(profile: &[Vec2], flutes: usize, depth: f32, sides_per_flute: usize, uv_scale: f32) -> MeshData {
+    let mut m = MeshData::default();
+    let sides = flutes * sides_per_flute;
+    let mut len = vec![0.0];
+    for i in 1..profile.len() { len.push(len[i - 1] + profile[i].distance(profile[i - 1])); }
+    let groove = |a: f32| { let t = (a * flutes as f32 / TAU).fract(); depth * (std::f32::consts::PI * t).sin().powf(0.6) };
+    for (i, pp) in profile.iter().enumerate() {
+        for k in 0..=sides {
+            let a = TAU * k as f32 / sides as f32;
+            let r = (pp.x - if pp.x > depth * 2.0 { groove(a) } else { 0.0 }).max(0.0);
+            m.vertex(Vec3::new(a.cos() * r, pp.y, a.sin() * r), Vec3::ZERO, Vec2::new(a * pp.x.max(0.05), len[i]) * uv_scale);
+        }
+    }
+    m.grid(0, profile.len(), sides + 1, false);
+    recompute_normals(&mut m);
+    fix_winding_outward(&mut m);
+    m
+}
+
+/// Vertically fluted cladding following horizontal `frames` (side = outward),
+/// from `y0` to `y1`. Flutes are convex half-rounds of `pitch` width standing
+/// `depth` proud of the frames. Used for oak wall panels and the bar front.
+pub fn fluted_skin(frames: &[Frame], y0: f32, y1: f32, pitch: f32, depth: f32, uv_scale: f32) -> MeshData {
+    // Resample the path densely so each flute gets several columns.
+    let mut pts = vec![]; let mut sides = vec![]; let mut dist = vec![]; let mut acc = 0.0;
+    for w in frames.windows(2) {
+        let l = w[0].pos.distance(w[1].pos);
+        let steps = ((l / (pitch / 8.0)).ceil() as usize).max(1);
+        for k in 0..steps {
+            let t = k as f32 / steps as f32;
+            pts.push(w[0].pos.lerp(w[1].pos, t)); sides.push(w[0].side.lerp(w[1].side, t).normalize()); dist.push(acc + l * t);
+        }
+        acc += l;
+    }
+    if let Some(f) = frames.last() { pts.push(f.pos); sides.push(f.side); dist.push(acc); }
+    let mut m = MeshData::default();
+    for y in [y0, y1] {
+        for (i, p) in pts.iter().enumerate() {
+            let t = (dist[i] / pitch).fract();
+            let bump = depth * (1.0 - (2.0 * t - 1.0).powi(2)).max(0.0).sqrt();
+            m.vertex(Vec3::new(p.x, y, p.z) + sides[i] * bump, sides[i], Vec2::new(dist[i], -y) * uv_scale);
+        }
+    }
+    m.grid(0, 2, pts.len(), false);
+    recompute_normals(&mut m);
+    // Orientation: normals must face the outward side.
+    let flip = m.indices.chunks(3).next().map(|t| {
+        let (a, b, c) = (Vec3::from(m.positions[t[0] as usize]), Vec3::from(m.positions[t[1] as usize]), Vec3::from(m.positions[t[2] as usize]));
+        (b - a).cross(c - a).dot(sides[t[0] as usize % pts.len()]) < 0.0
+    }).unwrap_or(false);
+    if flip { for t in m.indices.chunks_mut(3) { t.swap(1, 2); } }
+    recompute_normals(&mut m);
+    m
+}
+
+/// Flat arch panel (rectangle with a semicircular top) in the plane spanned
+/// by `right` and Y, centred on `base` (bottom middle), facing `normal`.
+pub fn arch_panel(base: Vec3, right: Vec3, normal: Vec3, width: f32, height: f32, uv_scale: f32) -> MeshData {
+    arch_ribbon(&arch_outline(base, right, width, height, 24), normal, uv_scale)
+}
+
+/// Outline of an arch from the bottom-left corner over the top to the bottom-right corner.
+pub fn arch_outline(base: Vec3, right: Vec3, width: f32, height: f32, arc_steps: usize) -> Vec<Vec3> {
+    let r = width * 0.5;
+    let spring = (height - r).max(0.0);
+    let mut pts = vec![base - right * r, base - right * r + Vec3::Y * spring];
+    for k in 1..arc_steps {
+        let a = std::f32::consts::PI * (1.0 - k as f32 / arc_steps as f32);
+        pts.push(base + right * (r * a.cos()) + Vec3::Y * (spring + r * a.sin()));
+    }
+    pts.push(base + right * r + Vec3::Y * spring);
+    pts.push(base + right * r);
+    pts
+}
+
+fn arch_ribbon(outline: &[Vec3], normal: Vec3, uv_scale: f32) -> MeshData {
+    // Pair the left half with the mirrored right half, bottom to top.
+    let n = outline.len();
+    let half = n / 2;
+    let left: Vec<Vec3> = outline[..half + (n % 2)].to_vec();
+    let right: Vec<Vec3> = outline[half..].iter().rev().cloned().collect();
+    let k = left.len().min(right.len());
+    let mut m = MeshData::default();
+    let right_dir = (outline[n - 1] - outline[0]).normalize_or(Vec3::X);
+    for i in 0..k {
+        for p in [left[i], right[i]] {
+            m.vertex(p, normal, Vec2::new(p.dot(right_dir), -p.y) * uv_scale);
+        }
+    }
+    for i in 0..(k - 1) as u32 {
+        let (a, b, c, d) = (i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 3);
+        m.indices.extend([a, b, c, c, b, d]);
+    }
+    for t in m.indices.chunks_mut(3) {
+        let (x, y, z) = (Vec3::from(m.positions[t[0] as usize]), Vec3::from(m.positions[t[1] as usize]), Vec3::from(m.positions[t[2] as usize]));
+        if (y - x).cross(z - x).dot(normal) < 0.0 { t.swap(1, 2); }
+    }
+    m
+}
+
+/// Smooth vertex normals from the triangle faces (area weighted).
+fn recompute_normals(m: &mut MeshData) {
+    let mut acc = vec![Vec3::ZERO; m.positions.len()];
+    for t in m.indices.chunks(3) {
+        let (a, b, c) = (Vec3::from(m.positions[t[0] as usize]), Vec3::from(m.positions[t[1] as usize]), Vec3::from(m.positions[t[2] as usize]));
+        let f = (b - a).cross(c - a);
+        for &i in t { acc[i as usize] += f; }
+    }
+    for (n, a) in m.normals.iter_mut().zip(acc) { *n = a.normalize_or(Vec3::Y).to_array(); }
+}
+
+/// Make triangle winding agree with the stored normals.
+fn fix_winding(m: &mut MeshData) {
+    for t in m.indices.chunks_mut(3) {
+        let (a, b, c) = (Vec3::from(m.positions[t[0] as usize]), Vec3::from(m.positions[t[1] as usize]), Vec3::from(m.positions[t[2] as usize]));
+        let n = Vec3::from(m.normals[t[0] as usize]) + Vec3::from(m.normals[t[1] as usize]) + Vec3::from(m.normals[t[2] as usize]);
+        if (b - a).cross(c - a).dot(n) < 0.0 { t.swap(1, 2); }
+    }
+}
+
+/// For lathes: wind so that faces point away from the Y axis, then rebuild normals.
+fn fix_winding_outward(m: &mut MeshData) {
+    let mut flips = 0i32;
+    for t in m.indices.chunks(3) {
+        let (a, b, c) = (Vec3::from(m.positions[t[0] as usize]), Vec3::from(m.positions[t[1] as usize]), Vec3::from(m.positions[t[2] as usize]));
+        let centre = (a + b + c) / 3.0;
+        let radial = Vec3::new(centre.x, 0.0, centre.z);
+        let d = (b - a).cross(c - a).dot(radial);
+        if d < 0.0 { flips += 1 } else if d > 0.0 { flips -= 1 }
+    }
+    if flips > 0 { for t in m.indices.chunks_mut(3) { t.swap(1, 2); } }
+    recompute_normals(m);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -328,5 +495,10 @@ mod tests {
         assert!(outward(&rounded_box(Vec3::new(1.0, 0.5, 0.8), 0.1, 4, 1.0)));
         assert!(outward(&lathe(&[Vec2::new(0.3, 0.0), Vec2::new(0.3, 0.5), Vec2::new(0.1, 0.8)], 24, 1.0)));
         assert!(outward(&sweep(&rounded_rect(0.5, 0.4, 0.08, 4), &arc_frames(Vec3::ZERO, 2.0, 0.0, 1.0, 16), true, true, 1.0)));
+        assert!(outward(&cushion(Vec3::new(0.4, 0.1, 0.3), 0.3, 0.6, 48, 1.0)));
+        assert!(outward(&fluted_lathe(&[Vec2::new(0.3, 0.0), Vec2::new(0.3, 0.5)], 16, 0.02, 4, 1.0)));
+        assert!(outward(&arch_panel(Vec3::ZERO, Vec3::X, Vec3::Z, 1.0, 2.0, 1.0)));
+        let skin = fluted_skin(&path_frames(&[Vec3::ZERO, Vec3::new(2.0, 0.0, 0.0)]), 0.0, 1.0, 0.1, 0.02, 1.0);
+        assert!(outward(&skin));
     }
 }

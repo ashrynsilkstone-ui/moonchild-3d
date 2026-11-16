@@ -3,6 +3,7 @@
 //! Start preset: `MOONCHILD_QUALITY=mittel|hoch|ultra` (default: hoch).
 //! - Mittel: 1024 px shadow maps, Gaussian shadow filtering, SSAO medium and
 //!   the cheap additive beam cones of the moving heads.
+//! - All presets render deferred; Hoch and Ultra add screen-space reflections.
 //! - Hoch: 2048 px shadow maps, temporal shadow filtering, SSAO high and real
 //!   ray-marched volumetric light (Bevy `VolumetricFog`) in a light haze; the
 //!   moving heads then cast shadows, so geometry cuts their beams.
@@ -10,7 +11,7 @@
 //!   shadowed warm ceiling spots also scatter into the haze.
 use bevy::{
     light::{FogVolume, PointLightShadowMap, ShadowFilteringMethod, VolumetricFog, VolumetricLight},
-    pbr::{ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel},
+    pbr::{ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel, ScreenSpaceReflections},
     prelude::*,
 };
 
@@ -31,6 +32,8 @@ impl Quality {
     pub fn shadow_map_size(self) -> usize { match self { Self::Mittel => 1024, Self::Hoch => 2048, Self::Ultra => 4096 } }
     /// Ray-marching steps of the volumetric fog, `None` = cheap beam cones instead.
     pub fn volumetric_steps(self) -> Option<u32> { match self { Self::Mittel => None, Self::Hoch => Some(48), Self::Ultra => Some(96) } }
+    /// Ray-march steps for screen-space reflections, `None` = off.
+    pub fn ssr_steps(self) -> Option<u32> { match self { Self::Mittel => None, Self::Hoch => Some(16), Self::Ultra => Some(32) } }
     pub fn ssao(self) -> ScreenSpaceAmbientOcclusionQualityLevel {
         match self { Self::Mittel => ScreenSpaceAmbientOcclusionQualityLevel::Medium, Self::Hoch => ScreenSpaceAmbientOcclusionQualityLevel::High,
             Self::Ultra => ScreenSpaceAmbientOcclusionQualityLevel::Ultra }
@@ -51,7 +54,7 @@ pub struct FakeBeam;
 pub fn haze(size: Vec3, centre: Vec3) -> impl Bundle {
     (
         FogVolume {
-            density_factor: 0.07,
+            density_factor: 0.045,
             absorption: 0.02,
             scattering: 0.6,
             scattering_asymmetry: 0.6,
@@ -87,6 +90,13 @@ pub fn apply(
     match q.volumetric_steps() {
         Some(steps) => { cam.insert(VolumetricFog { step_count: steps, jitter: 0.5, ambient_intensity: 0.0, ..default() }); }
         None => { cam.remove::<VolumetricFog>(); }
+    }
+    // Screen-space reflections: polished terrazzo, marble, brass and glass
+    // reflect the real scene (where it is on screen; the cubemap fills the rest).
+    match q.ssr_steps() {
+        Some(steps) => { cam.insert(ScreenSpaceReflections { linear_steps: steps, bisection_steps: 6, thickness: 0.12,
+            min_perceptual_roughness: 0.0..0.0, max_perceptual_roughness: 0.22..0.32, ..default() }); }
+        None => { cam.remove::<ScreenSpaceReflections>(); }
     }
     let volumetric = q.volumetric_steps().is_some();
     // Bevy only scatters lights with shadow maps into the fog; the shadows also

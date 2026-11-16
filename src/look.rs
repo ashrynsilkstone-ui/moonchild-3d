@@ -15,13 +15,18 @@ use bevy::{
 /// Mesh builders multiply metre coordinates with `1.0 / tile`.
 pub mod tile {
     pub const CONCRETE: f32 = 2.0;
+    /// Terrazzo hall floor.
     pub const FLOOR: f32 = 2.0;
     pub const STEEL: f32 = 1.0;
     pub const DARKSTEEL: f32 = 1.0;
-    pub const LEATHER: f32 = 0.6;
     pub const GRILLE: f32 = 0.4;
     pub const TREAD: f32 = 0.5;
     pub const BACKLIGHT: f32 = 1.0;
+    pub const VELVET: f32 = 0.5;
+    pub const BOUCLE: f32 = 0.3;
+    pub const BRASS: f32 = 1.0;
+    pub const MARBLE: f32 = 2.0;
+    pub const OAK: f32 = 1.0;
 }
 
 #[derive(Resource, Default)]
@@ -33,12 +38,20 @@ pub struct Surfaces {
     pub darksteel: Handle<StandardMaterial>,
     pub floor: Handle<StandardMaterial>,
     pub dance_floor: Handle<StandardMaterial>,
-    pub leather: Handle<StandardMaterial>,
     pub grille: Handle<StandardMaterial>,
     pub tread: Handle<StandardMaterial>,
     pub backlight_cyan: Handle<StandardMaterial>,
     pub backlight_magenta: Handle<StandardMaterial>,
     pub backlight_amber: Handle<StandardMaterial>,
+    pub velvet: Handle<StandardMaterial>,
+    pub boucle: Handle<StandardMaterial>,
+    pub brass: Handle<StandardMaterial>,
+    /// Polished brass without brushing, for fluted columns where brushing would cross the flutes.
+    pub brass_polished: Handle<StandardMaterial>,
+    pub marble: Handle<StandardMaterial>,
+    pub oak: Handle<StandardMaterial>,
+    pub smoked_glass: Handle<StandardMaterial>,
+    pub opal: Handle<StandardMaterial>,
 }
 
 struct Maps { base: Handle<Image>, normal: Handle<Image>, orm: Handle<Image> }
@@ -72,13 +85,17 @@ fn pbr_from(maps: &Maps) -> StandardMaterial {
 impl Surfaces {
     pub fn new(materials: &mut Assets<StandardMaterial>, server: &AssetServer, queue: &mut MipQueue) -> Self {
         let concrete = load_maps(server, queue, "concrete");
-        let floor = load_maps(server, queue, "floor");
         let steel = load_maps(server, queue, "steel");
         let darksteel = load_maps(server, queue, "darksteel");
-        let leather = load_maps(server, queue, "leather");
         let grille = load_maps(server, queue, "grille");
         let tread = load_maps(server, queue, "treadplate");
         let back = load_maps(server, queue, "backlight");
+        let velvet = load_maps(server, queue, "velvet");
+        let boucle = load_maps(server, queue, "boucle");
+        let brass = load_maps(server, queue, "brass");
+        let terrazzo = load_maps(server, queue, "terrazzo");
+        let marble = load_maps(server, queue, "marble");
+        let oak = load_maps(server, queue, "oak");
         let back_emissive: Handle<Image> = server.load("textures/moonchild/backlight_emissive.png");
         queue.0.push((back_emissive.id(), false));
         let backlight = |materials: &mut Assets<StandardMaterial>, c: LinearRgba| materials.add(StandardMaterial {
@@ -89,15 +106,13 @@ impl Surfaces {
         });
         Self {
             concrete: materials.add(StandardMaterial { base_color: Color::srgb(1.12, 1.10, 1.08), ..pbr_from(&concrete) }),
-            // Sealed concrete: a thin clear coat over the worn texture roughness.
-            floor: materials.add(StandardMaterial { clearcoat: 0.2, clearcoat_perceptual_roughness: 0.3, ..pbr_from(&floor) }),
-            // The circular dance floor is darker and lacquered to a high gloss.
-            dance_floor: materials.add(StandardMaterial { base_color: Color::srgb(0.55, 0.55, 0.62), perceptual_roughness: 0.55,
-                clearcoat: 0.45, clearcoat_perceptual_roughness: 0.14, ..pbr_from(&floor) }),
+            // Hall and gallery floor: polished charcoal terrazzo with a sealer coat.
+            floor: materials.add(StandardMaterial { clearcoat: 0.5, clearcoat_perceptual_roughness: 0.14, ..pbr_from(&terrazzo) }),
+            // The circular dance floor: high-gloss black marble (reflects the scene through SSR).
+            dance_floor: materials.add(StandardMaterial { base_color: Color::srgb(0.8, 0.8, 0.82),
+                clearcoat: 0.8, clearcoat_perceptual_roughness: 0.05, ..pbr_from(&marble) }),
             steel: materials.add(pbr_from(&steel)),
             darksteel: materials.add(pbr_from(&darksteel)),
-            // Upholstery leather with a soft finish coat.
-            leather: materials.add(StandardMaterial { clearcoat: 0.25, clearcoat_perceptual_roughness: 0.38, ..pbr_from(&leather) }),
             grille: materials.add(StandardMaterial {
                 alpha_mode: AlphaMode::Mask(0.5), double_sided: true, cull_mode: None, ..pbr_from(&grille)
             }),
@@ -105,6 +120,19 @@ impl Surfaces {
             backlight_cyan: backlight(materials, LinearRgba::rgb(0.2, 2.6, 3.4)),
             backlight_magenta: backlight(materials, LinearRgba::rgb(3.2, 0.25, 1.6)),
             backlight_amber: backlight(materials, LinearRgba::rgb(1.5, 0.42, 0.12)),
+            velvet: materials.add(pbr_from(&velvet)),
+            boucle: materials.add(pbr_from(&boucle)),
+            brass: materials.add(pbr_from(&brass)),
+            brass_polished: materials.add(StandardMaterial { base_color: Color::srgb(0.86, 0.66, 0.36), metallic: 1.0, perceptual_roughness: 0.22, ..default() }),
+            marble: materials.add(StandardMaterial { clearcoat: 0.7, clearcoat_perceptual_roughness: 0.06, ..pbr_from(&marble) }),
+            oak: materials.add(StandardMaterial { clearcoat: 0.15, clearcoat_perceptual_roughness: 0.4, ..pbr_from(&oak) }),
+            smoked_glass: materials.add(StandardMaterial {
+                base_color: Color::srgba(0.10, 0.085, 0.07, 0.42), alpha_mode: AlphaMode::Blend, perceptual_roughness: 0.04,
+                reflectance: 0.6, ..default()
+            }),
+            // Opal glass globes: soft, warm and diffuse.
+            opal: materials.add(StandardMaterial { base_color: Color::srgb(1.0, 0.96, 0.9), emissive: LinearRgba::rgb(6.0, 4.4, 2.8),
+                perceptual_roughness: 0.3, ..default() }),
         }
     }
 }

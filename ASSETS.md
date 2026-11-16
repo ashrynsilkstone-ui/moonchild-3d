@@ -6,7 +6,7 @@ Alle Assets dieses Repositories wurden für Moonchild selbst erzeugt. Es wurden 
 |---|---|---|
 | `assets/textures/moonchild/*.png` | prozedural aus gesetztem Rauschen, Voronoi-Zellen und gezeichneten Linien berechnet | `tools/generate_textures.py` (Python, NumPy, Pillow) |
 | `assets/textures/dj/*.png` | prozedural gezeichnete DJ-Faceplates. Die Beschriftung wird beim Erzeugen mit der lokal installierten freien Schrift DejaVu Sans gesetzt; die Schriftdatei wird nicht mitgeliefert | `tools/generate_dj_textures.py` |
-| Club-Geometrie | zur Laufzeit erzeugte Meshes | `src/shapes.rs`, `src/club_section.rs`, `src/hall.rs`, `src/main.rs`, `src/dj_gear.rs` |
+| Club-Geometrie | zur Laufzeit erzeugte Meshes | `src/shapes.rs` (u. a. Superquadrik-Kissen, Riffelflächen, Bögen), `src/club_section.rs`, `src/hall.rs`, `src/main.rs`, `src/dj_gear.rs` |
 | Umgebungs-Cubemap | zur Laufzeit prozedural gemalt | `src/look.rs` (`environment_cubemap`) |
 | `docs/screenshots/*.jpg` | In-Engine-Screenshots aus dem laufenden Spiel, keine Bildgenerierung | `src/capture.rs` |
 

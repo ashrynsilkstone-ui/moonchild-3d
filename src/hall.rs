@@ -123,8 +123,12 @@ fn walls(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
                 b.bx(Vec3::new(0.025, 2.4, w), 0.005, &s.grille, Vec3::new(sx * (ROOM_X - 0.075), 4.95, zc), tile::GRILLE);
                 // The back bar occupies the lower part of the right wall.
                 if sx > 0.0 && zc > 0.0 && zc < 5.1 { continue; }
-                b.bx(Vec3::new(0.03, 1.9, w), 0.01, &bay.amber, Vec3::new(sx * (ROOM_X - 0.03), 1.4, zc), tile::BACKLIGHT);
-                b.bx(Vec3::new(0.025, 1.9, w), 0.005, &s.grille, Vec3::new(sx * (ROOM_X - 0.075), 1.4, zc), tile::GRILLE);
+                // Lower bays: vertically fluted smoked-oak wainscot.
+                let x = sx * (ROOM_X - 0.02);
+                let fr = shapes::path_frames(&[Vec3::new(x, 0.0, zc - w * 0.5), Vec3::new(x, 0.0, zc + w * 0.5)])
+                    .into_iter().map(|f| shapes::Frame { side: Vec3::new(-sx, 0.0, 0.0), ..f }).collect::<Vec<_>>();
+                b.put(shapes::fluted_skin(&fr, 0.3, 2.45, 0.07, 0.02, 1.0 / tile::OAK), &s.oak);
+                b.bx(Vec3::new(0.05, 0.03, w + 0.02), 0.01, &s.brass, Vec3::new(sx * (ROOM_X - 0.03), 2.47, zc), tile::BRASS);
             }
         }
     }
@@ -139,8 +143,10 @@ fn walls(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
         if x.abs() < 1.5 { continue; }
         b.bx(Vec3::new(1.8, 2.4, 0.03), 0.01, &bay.amber, Vec3::new(x, 4.95, ROOM_Z - 0.03), tile::BACKLIGHT);
         b.bx(Vec3::new(1.8, 2.4, 0.025), 0.005, &s.grille, Vec3::new(x, 4.95, ROOM_Z - 0.075), tile::GRILLE);
-        b.bx(Vec3::new(1.8, 1.9, 0.03), 0.01, &bay.cyan, Vec3::new(x, 1.4, ROOM_Z - 0.03), tile::BACKLIGHT);
-        b.bx(Vec3::new(1.8, 1.9, 0.025), 0.005, &s.grille, Vec3::new(x, 1.4, ROOM_Z - 0.075), tile::GRILLE);
+        let fr = shapes::path_frames(&[Vec3::new(x - 0.9, 0.0, ROOM_Z - 0.02), Vec3::new(x + 0.9, 0.0, ROOM_Z - 0.02)])
+            .into_iter().map(|f| shapes::Frame { side: Vec3::NEG_Z, ..f }).collect::<Vec<_>>();
+        b.put(shapes::fluted_skin(&fr, 0.3, 2.45, 0.07, 0.02, 1.0 / tile::OAK), &s.oak);
+        b.bx(Vec3::new(1.82, 0.03, 0.05), 0.01, &s.brass, Vec3::new(x, 2.47, ROOM_Z - 0.03), tile::BRASS);
     }
     let moon = Vec3::new(0.0, 4.9, ROOM_Z - 0.05);
     b.put(crescent(moon, 1.25, 0.55), &neon.magenta);

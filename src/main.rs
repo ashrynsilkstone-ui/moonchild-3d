@@ -74,6 +74,8 @@ fn main() {
         .init_resource::<Show>()
         .init_resource::<look::MipQueue>()
         .insert_resource(quality::Quality::from_env())
+        // Deferred shading: required for screen-space reflections (SSR).
+        .insert_resource(bevy::pbr::DefaultOpaqueRendererMethod::deferred())
         .add_systems(Startup, setup)
         .add_systems(Update, (walk, controls, animate_lights, update_hud, look::generate_mipmaps, quality::cycle, quality::apply.after(quality::cycle)))
         .add_systems(Update, capture::run_tour.after(walk));
