@@ -41,6 +41,7 @@ cargo run --release
 | 8 | Ruhiges Lichtprogramm Lounge |
 | L | Show-Licht an/aus; das warme Grundlicht bleibt an |
 | + / - | Tempo und BPM |
+| F1 | Bedienungsanzeige ein- und ausblenden |
 | F2 | Grafikqualität: Mittel → Hoch → Ultra |
 | Escape | Beenden |
 
@@ -220,7 +221,7 @@ python3 tools/generate_textures.py velvet marble
 - `MOONCHILD_TEX_SCALE` (Standard 2) skaliert die Auflösung, alle pixelbasierten Größen skalieren mit. Mit `1` entsteht die halbe Auflösung bei gleichem Aussehen.
 - Die ausgemusterten Sets `floor` und `leather` werden nicht mehr ausgeliefert, lassen sich aber per Name noch erzeugen.
 
-**Screenshot-Rundgang** aus dem laufenden Spiel:
+**Screenshot-Rundgang** aus dem laufenden Spiel (optional ohne Anzeige mit `MOONCHILD_HIDE_HUD=1`; F1 blendet sie im Spiel wieder ein):
 
 ```bash
 MOONCHILD_SHOTS=<Ordner> cargo run --release
