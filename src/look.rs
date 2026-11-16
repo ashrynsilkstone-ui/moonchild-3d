@@ -3,6 +3,7 @@ use bevy::{
     anti_alias::taa::TemporalAntiAliasing,
     asset::RenderAssetUsages,
     camera::Hdr,
+    core_pipeline::prepass::{DeferredPrepass, DepthPrepass},
     image::{ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
     light::GeneratedEnvironmentMapLight,
     pbr::{ContactShadows, ScreenSpaceAmbientOcclusion},
@@ -265,6 +266,10 @@ fn environment_cubemap(images: &mut Assets<Image>) -> Handle<Image> {
 pub fn camera_bundle(images: &mut Assets<Image>) -> impl Bundle {
     (
         Camera3d::default(),
+        // Deferred remains required even when Mittel disables SSR. Otherwise
+        // deferred materials have no g-buffer phase and Bevy can panic.
+        DeferredPrepass,
+        DepthPrepass,
         Hdr,
         Msaa::Off,
         TemporalAntiAliasing::default(),
@@ -273,4 +278,18 @@ pub fn camera_bundle(images: &mut Assets<Image>) -> impl Bundle {
         Bloom { intensity: 0.07, low_frequency_boost: 0.3, ..Bloom::NATURAL },
         GeneratedEnvironmentMapLight { environment_map: environment_cubemap(images), intensity: 450.0, ..default() },
     )
+}
+
+#[cfg(test)]
+mod camera_tests {
+    use super::*;
+    #[test]
+    fn deferred_camera_has_prepasses_without_ssr() {
+        let mut images = Assets::<Image>::default();
+        let mut world = World::new();
+        let camera = world.spawn(camera_bundle(&mut images)).id();
+        assert!(world.entity(camera).contains::<DeferredPrepass>());
+        assert!(world.entity(camera).contains::<DepthPrepass>());
+        assert!(!world.entity(camera).contains::<bevy::pbr::ScreenSpaceReflections>());
+    }
 }

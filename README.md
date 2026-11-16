@@ -9,8 +9,8 @@ Ein begehbarer Club in Rust und Bevy 0.20.1, gestaltet als Luxus-Lounge mit Neon
 - **Gestaltung:** Luxus-Lounge 2026. Samt- und Bouclé-Sofas, Messing, schwarzer Marmor, Terrazzo, geriffelte Eiche, Rauch- und Opalglas. Dazu Neon-Akzente in Cyan, Magenta und warmem Rot.
 - **Rendering:** Deferred Rendering mit Bildschirm-Spiegelungen (SSR), volumetrischem Licht im Club-Dunst, HDR, Bloom, TAA, SSAO und Contact Shadows.
 - **Qualitätsstufen:** Mittel, Hoch und Ultra, im Spiel mit F2 umschaltbar. Mesh-LOD für fein gerundete, wiederholte Teile.
-- **Branch:** Der Stand liegt auf `claude/dazzling-wozniak-5d15jq` und ist noch nicht in `main` übernommen.
-- **Geprüft:** Build ohne Warnungen und 16 bestandene Tests, dazu Aufnahmen im laufenden Spiel. Seit dem 16. November nur auf Software-Vulkan, also ohne Grafikkarte. Bildrate und Aussehen auf echter Hardware sind für diesen Stand noch ungeprüft (siehe [Prüfstand](#prüfstand)).
+- **Branch:** `main` enthält den Lounge-Ausbau und die anschließenden Bühnen- und Lichtverbesserungen.
+- **Geprüft:** `cargo check --locked`, `cargo test --locked` (18 Tests) und `cargo build --locked` auf Linux. Der Spielstart in Mittel wurde mit Software-Vulkan geprüft. Bildrate und Aussehen auf echter Hardware sind für den aktuellen Stand noch ungeprüft (siehe [Prüfstand](#prüfstand)).
 
 ## Start auf CachyOS / Arch Linux
 
@@ -38,6 +38,7 @@ cargo run --release
 | 1 / 2 / 3 | Lichtprogramm Neon / Rave / Chill |
 | 4 | Strobe (nur manuell, nie Standard) |
 | 5 / 6 / 7 | Lichtprogramm Fächer / Kegel / Chase |
+| 8 | Ruhiges Lichtprogramm Lounge |
 | L | Show-Licht an/aus; das warme Grundlicht bleibt an |
 | + / - | Tempo und BPM |
 | F2 | Grafikqualität: Mittel → Hoch → Ultra |
@@ -67,6 +68,7 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 - Auf der Galerie weinroter Samt mit Bouclé-Kissen, unten cremefarbenes Bouclé mit Samtkissen.
 - Sitz- und geneigte Rückenkissen sind weich geformte Superquadriken, die auf den Bogen gebogen werden, sodass keine Keilspalten entstehen. Dazu Endrollen und Dekokissen.
 - Gepolsterter Sockel auf Messing-Fußleiste mit Lichtfuge, Messing-Paspel an der Rückenoberkante.
+- Kleine prozedurale Pflanzenarrangements in Messingvasen auf den bestehenden Couchtischen. Die Blätter besitzen ein einfaches grünes PBR-Material; sie sind keine Fotoscans.
 - Couchtisch mit geriffeltem Messingfuß, Marmorplatte, Lichtring und Rauchglaslaterne. Über den Galerie-Lounges je drei Kugelleuchten aus Opalglas.
 
 **Bar**
@@ -77,14 +79,14 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 
 **Bühne und DJ**
 - Geschwungenes DJ-Pult mit hinterleuchteter Lochblechfront und den DJ-Geräten. Bedienelemente und Bildschirme sind nur optisch, keine funktionierende Musiksteuerung.
-- Lautsprecher, Bühnenkante aus Riffelblech, Stufen an der Seite, Bühnenfront mit acht hinterleuchteten Lochblechfeldern.
+- Lautsprecher, abgerundeter Bühnenkörper und Riffelblechbelag, Stufen an der Seite, Bühnenfront mit acht hinterleuchteten Lochblechfeldern. Seitliche Eichenrillen und Messingleisten ergänzen den bestehenden Bühnenkörper.
 - LED-Wand aus 120 einzeln animierten, abgerundeten Kacheln im Rahmen.
 - Traversenportal aus zwei Türmen und Quertraverse mit fünf LED-Leisten und vier weiteren Moving Heads.
 
 **Halle** (`src/hall.rs`)
 - **Seitenwände:** Stahlfinnen, unten geriffelte Eichenverkleidung mit Messingabschluss, oben gedimmte, hinterleuchtete Paneele hinter Lochblech (links Cyan, rechts Magenta).
 - **Eingangswand:** Eichenverkleidung, Bernstein-Paneele und eine leuchtende Mondsichel als eigenes Moonchild-Motiv.
-- **Bühnenrückwand:** je drei hinterleuchtete Akustikpaneele neben der LED-Wand.
+- **Bühnenrückwand:** je drei hinterleuchtete Akustikpaneele neben der LED-Wand; davor gestufte Bögen aus Messing und warmem Licht.
 - **Decke und Abschlüsse:** Lüftungskanäle, Kabeltrasse, Stahlgesims mit warmer Voutenlinie, Sockelleisten.
 - **Böden:** Hallen- und Galerieboden aus poliertem Terrazzo.
 
@@ -97,6 +99,7 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
   - **5 Fächer:** Strahlenlinie, die auffächert und von vorn nach hinten schwenkt.
   - **6 Kegel:** alle Strahlen auf einem rotierenden Kreis, der sich weitet und zusammenzieht.
   - **7 Chase:** feste Positionen, die Helligkeit springt im BPM-Takt von Kopf zu Kopf.
+  - **8 Lounge:** langsam schwenkende, spiegelbildliche Lichtkegel in warmen und zurückhaltenden Farbtönen. Helligkeit der Moving Heads und Punktlichter bleibt konstant, ohne taktbedingtes Blitzen; die LED-Wand bewegt sich langsam.
 - **Lichtstrahlen:** In Hoch und Ultra entsteht echtes volumetrisches Streulicht in einem leichten Club-Dunst (Bevy `FogVolume` + `VolumetricFog`). Die Moving Heads werfen dann Schatten, weil Bevy nur schattenwerfende Lichter in den Nebel streut. Bühne, Traverse und Galerie schneiden die Strahlen deshalb sichtbar an. In Mittel gibt es stattdessen günstige additive Lichtkegel ohne Abschattung.
 - **Schatten:** Die warmen Grundlicht-Spots werfen Schattenkarten, dazu kommen Contact Shadows. Die pulsierenden Punktlichter werfen nie Schatten.
 
@@ -112,7 +115,7 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 | Moving Heads mit Schatten | nein | ja | ja |
 | Warme Deckenspots im Dunst | nein | nein | ja |
 
-- **Rendering:** immer deferred, weil SSR das voraussetzt. Kamera mit HDR, Bloom (Intensität 0,07), TAA, SSAO und Contact Shadows.
+- **Rendering:** immer deferred, mit explizitem Deferred- und Depth-Prepass auch in Mittel, wo SSR ausgeschaltet ist. Kamera mit HDR, Bloom (Intensität 0,07), TAA, SSAO und Contact Shadows.
 - **Spiegelungen:**
   - Per SSR spiegeln Marmor, Terrazzo und Theke die echte Szene, aber nur bis zu einer Rauheit von 0,32 und nur, was gerade im Bild ist.
   - Außerhalb davon spiegelt eine prozedural gemalte HDR-Umgebungskarte (256² pro Seite).
@@ -226,7 +229,7 @@ MOONCHILD_SHOTS=<Ordner> cargo run --release
 - Screenshot-Rundgang ohne Panic.
 - Framezeiten etwa 5,0–6,5 ms bei 1440×900 ohne V-Sync. Die Läufe schwankten, einzelne waren auf 60 Hz begrenzt.
 
-**Aktueller Stand (16. November 2026, Cloud-Umgebung ohne Grafikkarte, Rust 1.97.1, Mesa lavapipe unter Xvfb):**
+**Vorheriger Lounge-Stand (16. November 2026, Cloud-Umgebung ohne Grafikkarte, Rust 1.97.1, Mesa lavapipe unter Xvfb):**
 
 - `cargo build --release` ohne Warnungen.
 - `cargo test --release` mit 16 bestandenen Tests:
@@ -243,10 +246,14 @@ MOONCHILD_SHOTS=<Ordner> cargo run --release
 **Nicht geprüft:**
 
 - Bildrate und Aussehen des aktuellen Stands auf der RX 9070 XT. Dreieckszahl, Deferred Rendering, SSR und volumetrisches Licht kosten deutlich mehr als vorher. Bei Ruckeln mit F2 auf Mittel schalten.
-- Stufen Ultra und Mittel im laufenden Spiel; Ultra ist auf dem Software-Renderer zu langsam.
+- Stufe Ultra und der neue Stand in Hoch auf echter Grafikhardware. Der frühere Lounge-Stand wurde in Hoch auf Software-Vulkan aufgenommen.
 - Längere Bedienung mit echter Tastatur und Maus.
 
 Die Bilder `00_*` bis `13_*` in `docs/screenshots/` zeigen ältere Stände, ab `14_*` stammen sie aus dem Software-Rendering.
+
+### Bühnen- und Lounge-Erweiterung vom 16. November 2026
+
+Auf einem Linux-Prüfserver wurden `cargo check --locked`, `cargo test --locked` mit 18 bestandenen Tests und `cargo build --locked` für den neuen Stand erfolgreich ausgeführt. Die Tests umfassen auch den ruhigen Lounge-Modus und die expliziten Kamera-Prepasses. Im ersten Grafiklauf wurde in Mittel ein Deferred-Prepass-Absturz entdeckt und anschließend behoben. Die Qualitätsstufe Mittel wurde danach mit Mesa llvmpipe erfolgreich gestartet; die verkleinerte In-Engine-Aufnahme der Bühne liegt unter `docs/screenshots/30_lounge_stage.jpg`. Der Kamera-Ausschnitt für `31_lounge_table` wurde nach einer von einer Säule verdeckten Aufnahme korrigiert, aber noch nicht neu aufgenommen. Der Software-Test sagt nichts über Bildrate oder Bildwirkung auf der RX 9070 XT aus. [Prüflauf mit den ausgeführten Tests](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43877252457).
 
 ## Grenzen und offene Punkte
 
@@ -256,7 +263,7 @@ Die Bilder `00_*` bis `13_*` in `docs/screenshots/` zeigen ältere Stände, ab `
   - Raytracing gibt es nicht.
   - Modelle und Texturen sind prozedural, keine Fotoscans.
 - **Materialien:** Samt hat keinen echten Faserschimmer (Sheen), weil Bevys Standardmaterial das nicht kennt. Pflanzen fehlen.
-- **Geometrie:** Wandkern und Bühnenkörper sind einfache Quader, die Bühnenseiten schlicht.
+- **Geometrie:** Der Wandkern ist weiterhin einfach, die sichtbaren Oberflächen sind verkleidet. Auch die neue Bühnenverkleidung und die Pflanzen sind prozedural modelliert.
 - **Funktionen:** Keine Audiosynchronisierung, keine Sounddateien, keine NPCs, kein Multiplayer.
 
 ## Asset-Herkunft
