@@ -1,0 +1,20 @@
+name: Moonchild lounge checks
+on: [push, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      RUSTFLAGS: -C link-arg=-fuse-ld=lld
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev lld
+      - name: Check project
+        run: cargo check --locked
+      - name: Test project
+        run: cargo test --locked
+      - name: Build project
+        run: cargo build --locked
