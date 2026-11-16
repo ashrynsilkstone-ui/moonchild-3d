@@ -70,12 +70,36 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
     dance_floor(&mut cx, s, neon);
     gallery(&mut cx, s, neon, &bulb);
     stairs(&mut cx, s, neon);
-    for (i, &(x, y, z)) in LOUNGES.iter().enumerate() { lounge(&mut cx, s, neon, &bulb, Vec3::new(x, y, z), i); }
+    let foliage = materials.add(StandardMaterial { base_color: Color::srgb(0.09, 0.25, 0.14), perceptual_roughness: 0.78, ..default() });
+    let leaf_mesh = cx.mesh(shapes::cushion(Vec3::new(0.035, 0.012, 0.105), 0.65, 0.8, 14, 1.0));
+    for (i, &(x, y, z)) in LOUNGES.iter().enumerate() {
+        let centre = Vec3::new(x, y, z);
+        lounge(&mut cx, s, neon, &bulb, centre, i);
+        table_plant(&mut cx, s, &foliage, &leaf_mesh, centre);
+    }
     bar(&mut cx, s, neon, &glass, &bulb);
     halo(&mut cx, s, neon, &bulb);
     booth(&mut cx, s, neon);
     stage_steps(&mut cx, s, neon);
     speakers(&mut cx, s, neon);
+}
+
+/// Small foliage arrangement contained within the existing table collision.
+fn table_plant(cx: &mut Ctx, s: &Surfaces, leaf: &Handle<StandardMaterial>, mesh: &Handle<Mesh>, table: Vec3) {
+    let centre = table + Vec3::new(0.23, LOUNGE_TABLE_TOP, -0.10);
+    let vase = shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.075, 0.0), Vec2::new(0.085, 0.025),
+        Vec2::new(0.065, 0.14), Vec2::new(0.045, 0.16), Vec2::new(0.0, 0.16)], 32, uv(tile::BRASS));
+    cx.put_at(vase, &s.brass, Transform::from_translation(centre));
+    // Reuse a single smoothly rounded leaf mesh and vary the pose rather than
+    // making hundreds of unique meshes; the arrangement stays over the tabletop.
+    for i in 0..9 {
+        let angle = i as f32 * 2.399_963_1;
+        let r = 0.035 + 0.018 * (i % 3) as f32;
+        let pos = centre + Vec3::new(angle.cos() * r, 0.18 + 0.018 * (i % 3) as f32, angle.sin() * r);
+        let rotation = Quat::from_rotation_y(-angle + FRAC_PI_2) * Quat::from_rotation_x(0.42 + 0.12 * (i % 3) as f32);
+        cx.c.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(leaf.clone()), Transform::from_translation(pos).with_rotation(rotation),
+            bevy::light::NotShadowCaster, lod::near(lod::SMALL, false)));
+    }
 }
 
 // ------------------------------------------------------------------ dance floor

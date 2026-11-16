@@ -182,6 +182,12 @@ fn back_wall(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
             b.bx(Vec3::new(1.7, 4.6, 0.04), 0.01, mat, Vec3::new(sx * x, 3.6, zw + 0.05), tile::BACKLIGHT);
             b.bx(Vec3::new(1.7, 4.6, 0.03), 0.005, &s.grille, Vec3::new(sx * x, 3.6, zw + 0.11), tile::GRILLE);
             b.bx(Vec3::new(0.12, 4.8, 0.14), 0.03, &s.darksteel, Vec3::new(sx * (x - 0.95), 3.6, zw + 0.08), tile::DARKSTEEL);
+            // Layered arched surrounds add depth without projecting into the stage.
+            let base = Vec3::new(sx * x, 1.32, zw + 0.16);
+            let outline = shapes::arch_outline(base, Vec3::X, 1.62, 4.42, 32);
+            b.put(shapes::tube(&outline, 0.027, 12, 1.0 / tile::BRASS), &s.brass);
+            let inner = shapes::arch_outline(base + Vec3::new(0.0,0.10,0.012), Vec3::X, 1.44, 4.18, 32);
+            b.put(shapes::tube(&inner, 0.009, 8, 1.0), &neon.warm);
         }
         b.bx(Vec3::new(0.12, 4.8, 0.14), 0.03, &s.darksteel, Vec3::new(sx * 11.55, 3.6, zw + 0.08), tile::DARKSTEEL);
     }
@@ -228,4 +234,16 @@ fn stage_front(b: &mut B, s: &Surfaces, _neon: &Neon) {
         b.bx(Vec3::new(0.12, 0.8, 0.05), 0.02, &s.steel, Vec3::new(x + 0.875, 0.45, z + 0.01), tile::STEEL);
     }
     b.bx(Vec3::new(0.12, 0.8, 0.05), 0.02, &s.steel, Vec3::new(-6.975, 0.45, z + 0.01), tile::STEEL);
+    // Side cladding projects less than 3 cm beyond the existing stage footprint;
+    // this stays within the player radius and clears the right-hand stage steps.
+    for sx in [-1.0f32, 1.0] {
+        let x = sx * (STAGE_X + 0.004);
+        let frames = shapes::path_frames(&[Vec3::new(x, 0.0, STAGE_Z.0 + 0.05), Vec3::new(x, 0.0, STAGE_Z.1 - 0.05)])
+            .into_iter().map(|f| shapes::Frame { side: Vec3::new(sx, 0.0, 0.0), ..f }).collect::<Vec<_>>();
+        b.put(shapes::fluted_skin(&frames, 0.10, 0.84, 0.14, 0.018, 1.0 / tile::OAK), &s.oak);
+        for y in [0.10, 0.84] {
+            b.put(shapes::tube(&[Vec3::new(x, y, STAGE_Z.0 + 0.04), Vec3::new(x, y, STAGE_Z.1 - 0.04)],
+                0.012, 8, 1.0 / tile::BRASS), &s.brass);
+        }
+    }
 }

@@ -34,6 +34,8 @@ pub fn viewpoints() -> Vec<Shot> {
         Shot { name: "17_program_fan", eye: Vec3::new(-6.0, 1.8, 6.0), target: Vec3::new(1.0, 2.4, -4.0), mode: 4 },
         Shot { name: "18_program_cone", eye: Vec3::new(-6.0, 1.8, 6.0), target: Vec3::new(1.0, 2.4, -4.0), mode: 5 },
         Shot { name: "19_program_chase", eye: Vec3::new(-6.0, 1.8, 6.0), target: Vec3::new(1.0, 2.4, -4.0), mode: 6 },
+        Shot { name: "30_lounge_stage", eye: Vec3::new(0.0, 1.9, -2.5), target: Vec3::new(0.0, 3.8, -9.4), mode: 7 },
+        Shot { name: "31_lounge_table", eye: Vec3::new(1.8, 1.55, 5.4), target: Vec3::new(6.0, 0.6, 8.15), mode: 7 },
     ]
 }
 

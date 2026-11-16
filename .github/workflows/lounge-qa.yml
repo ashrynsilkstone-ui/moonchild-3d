@@ -18,3 +18,18 @@ jobs:
         run: cargo test --locked
       - name: Build project
         run: cargo build --locked
+      - name: Install software graphics dependencies
+        run: sudo apt-get install -y --no-install-recommends xvfb libxkbcommon-x11-0 mesa-vulkan-drivers python3-pil
+      - name: Capture the running game
+        run: |
+          mkdir -p /tmp/moonchild-shots
+          export BEVY_ASSET_ROOT="$PWD" MOONCHILD_SHOTS=/tmp/moonchild-shots MOONCHILD_SHOT_FILTER=30_lounge_stage MOONCHILD_SHOT_FAST=1 MOONCHILD_QUALITY=mittel
+          timeout 420s xvfb-run -a -s '-screen 0 1440x900x24' target/debug/moonchild-3d > /tmp/moonchild.log 2>&1 || { cat /tmp/moonchild.log; exit 1; }
+          cat /tmp/moonchild.log
+          if grep -E 'Path not found:|panicked at' /tmp/moonchild.log; then exit 1; fi
+          test -s /tmp/moonchild-shots/30_lounge_stage.png
+          /usr/bin/python3 -c 'from PIL import Image; im=Image.open("/tmp/moonchild-shots/30_lounge_stage.png"); im.thumbnail((960,600)); im.convert("RGB").save("/tmp/moonchild-stage.jpg",quality=75)'
+          echo GAME_SCREENSHOT_BEGIN
+          base64 -w0 /tmp/moonchild-stage.jpg
+          echo
+          echo GAME_SCREENSHOT_END

@@ -37,8 +37,8 @@ struct MovingHead { index: usize, base: Vec3, stage: bool }
 struct Beam;
 
 /// Number of light programs: Neon, Rave, Chill, Strobe, Faecher, Kegel, Chase.
-const PROGRAMS: usize = 7;
-const PROGRAM_NAMES: [&str; PROGRAMS] = ["NEON", "RAVE", "CHILL", "STROBE", "FAECHER", "KEGEL", "CHASE"];
+const PROGRAMS: usize = 8;
+const PROGRAM_NAMES: [&str; PROGRAMS] = ["NEON", "RAVE", "CHILL", "STROBE", "FAECHER", "KEGEL", "CHASE", "LOUNGE"];
 #[derive(Component)]
 struct Led { index: usize }
 #[derive(Component)]
@@ -138,8 +138,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     }
 
     // Raised DJ stage at the far end with a tread-plate edge.
-    block(&mut commands,&mut meshes,s.darksteel.clone(),Vec3::new(0.0,0.46,-7.55),Vec3::new(14.0,0.92,4.4),steel_uv);
-    block(&mut commands,&mut meshes,s.tread.clone(),Vec3::new(0.0,0.94,-7.55),Vec3::new(14.0,0.04,4.4),1.0 / look::tile::TREAD);
+    // Keep the shared stage footprint while softening its visible edges.
+    let riser = meshes.add(shapes::rounded_box(Vec3::new(14.0,0.92,4.4),0.12,5,steel_uv).build());
+    commands.spawn((Mesh3d(riser),MeshMaterial3d(s.darksteel.clone()),Transform::from_xyz(0.0,0.46,-7.55)));
+    let deck = meshes.add(shapes::rounded_box(Vec3::new(14.0,0.04,4.4),0.018,4,1.0 / look::tile::TREAD).build());
+    commands.spawn((Mesh3d(deck),MeshMaterial3d(s.tread.clone()),Transform::from_xyz(0.0,0.94,-7.55)));
     commands.spawn((Mesh3d(meshes.add(shapes::tube(&[Vec3::new(-6.95,0.9,-5.33),Vec3::new(6.95,0.9,-5.33)],0.014,8,1.0).build())), MeshMaterial3d(neon.cyan.clone())));
     dj_gear::spawn(&mut commands, &mut meshes, &mut materials, &asset_server);
     // LED tiles, individually animated via material emissive colour, in a rounded frame.
@@ -235,7 +238,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
         Player { yaw: 0.0, pitch: 0.03, motion: navigation::Motion::standing() }));
     // Overlay and instructions (ASCII only: the default UI font lacks some glyphs).
     commands.spawn((
-        Text::new("MOONCHILD  |  3D CLUB  |  WASD gehen  |  Shift schneller  |  Leertaste springen  |  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe  5 Faecher  6 Kegel  7 Chase  |  L Show-Licht an/aus  |  +/- Tempo  |  F2 Grafik  |  ESC beenden"),
+        Text::new("MOONCHILD  |  3D CLUB  |  WASD gehen  |  Shift schneller  |  Leertaste springen  |  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe  5 Faecher  6 Kegel  7 Chase  8 Lounge  |  L Show-Licht an/aus  |  +/- Tempo  |  F2 Grafik  |  ESC beenden"),
         TextFont { font_size: FontSize::Px(17.0), ..default() },
         TextColor(Color::srgb(0.87,0.91,1.0)),
         Node { position_type: PositionType::Absolute, top: px(16), left: px(18), ..default() },
@@ -277,6 +280,7 @@ fn controls(keys: Res<ButtonInput<KeyCode>>, mut show: ResMut<Show>, mut exit: M
     if keys.just_pressed(KeyCode::Digit5) { show.mode=4; }
     if keys.just_pressed(KeyCode::Digit6) { show.mode=5; }
     if keys.just_pressed(KeyCode::Digit7) { show.mode=6; }
+    if keys.just_pressed(KeyCode::Digit8) { show.mode=7; }
     if keys.just_pressed(KeyCode::KeyL) { show.enabled=!show.enabled; }
     if keys.just_pressed(KeyCode::Equal) || keys.just_pressed(KeyCode::NumpadAdd) { show.speed=(show.speed+0.2).min(3.0); show.beat=(show.beat+5.0).min(200.0); }
     if keys.just_pressed(KeyCode::Minus) || keys.just_pressed(KeyCode::NumpadSubtract) { show.speed=(show.speed-0.2).max(0.2); show.beat=(show.beat-5.0).max(60.0); }
@@ -331,6 +335,13 @@ fn aim(mode: usize, stage: bool, i: usize, n: usize, t: f32) -> Vec3 {
             let r = 1.2 + 3.8 * (0.5 + 0.5 * (t * 0.45).sin());
             Vec3::new(cx + a.cos() * r, 0.0, cz + a.sin() * r)
         }
+        // Lounge: slow, mirrored arcs; no beat flashes.
+        7 => {
+            let side = if i % 2 == 0 { -1.0 } else { 1.0 };
+            let phase = t * 0.18 + fi * 0.55;
+            Vec3::new(cx + side * (1.6 + 2.5 * (0.5 + 0.5 * phase.sin())), 0.0,
+                cz + 2.8 * (phase * 0.7).cos())
+        }
         // Chase: fixed positions, the brightness jumps from head to head.
         6 => {
             let a = fi * 2.0 * PI / n as f32 + t * 0.1;
@@ -339,6 +350,17 @@ fn aim(mode: usize, stage: bool, i: usize, n: usize, t: f32) -> Vec3 {
         }
         _ if stage => Vec3::new(cx + (t * 0.5 + fi * 1.3).sin() * 6.0, 0.0, cz + 1.0 + (t * 0.4 + fi * 1.9).cos() * 4.0),
         _ => Vec3::new(cx + (t * (0.55 + fi * 0.08) + fi).sin() * 6.0, 0.0, cz + (t * 0.7 + fi * 1.7).cos() * 4.5),
+    }
+}
+
+/// A quiet lounge show keeps intensity steady and follows the global show switch.
+fn head_intensity(mode: usize, enabled: bool, index: usize, count: usize, beats: f32, pulse: f32) -> f32 {
+    if !enabled { return 0.0; }
+    match mode {
+        3 => if pulse > 0.38 { 280_000.0 } else { 500.0 },
+        6 => if beats.floor() as usize % count == index { 260_000.0 * (1.0 - 0.6 * beats.fract()) } else { 6_000.0 },
+        7 => 65_000.0,
+        _ => 110_000.0 + 65_000.0 * pulse,
     }
 }
 
@@ -359,6 +381,7 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
         4 => [(0.1,0.9,1.0),(0.9,0.2,1.0),(0.2,0.4,1.0)],
         5 => [(1.0,0.45,0.1),(1.0,0.1,0.45),(0.8,0.2,1.0)],
         6 => [(0.1,1.0,0.5),(0.1,0.7,1.0),(1.0,0.9,0.2)],
+        7 => [(1.0,0.60,0.32),(0.78,0.22,0.36),(0.30,0.55,0.70)],
         _ => [(1.0,1.0,1.0),(1.0,0.07,0.15),(0.2,0.3,1.0)],
     };
     for (head,mut trans,mut light,children) in &mut heads {
@@ -369,12 +392,8 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
         let (r,g,b)=colors[(head.index + head.stage as usize)%3];
         light.color=Color::srgb(r,g,b);
         let i=head.index as f32;
-        light.intensity=if !show.enabled { 0.0 } else { match show.mode {
-            3 => if pulse>0.38 { 280_000.0 } else { 500.0 },
-            6 => if beats.floor() as usize % n == head.index { 260_000.0 * (1.0 - 0.6 * beats.fract()) } else { 6_000.0 },
-            _ => 110_000.0+65_000.0*pulse,
-        } };
-        light.outer_angle=match show.mode { 2 => 0.52, 4 => 0.20, 5 => 0.30, 6 => 0.17, _ => 0.23+(t+i).sin().abs()*0.22 };
+        light.intensity = head_intensity(show.mode, show.enabled, head.index, n, beats, pulse);
+        light.outer_angle=match show.mode { 7 => 0.42, 2 => 0.52, 4 => 0.20, 5 => 0.30, 6 => 0.17, _ => 0.23+(t+i).sin().abs()*0.22 };
         light.inner_angle=light.outer_angle*0.7;
         // Beam cone: from the lens down to the floor target.
         let len = (target - head.base).length() - 0.17;
@@ -391,15 +410,16 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
     for (point,mut light) in &mut points {
         let (r,g,b)=colors[(point.index+1)%3];
         light.color=Color::srgb(r,g,b);
-        light.intensity=if show.enabled { 32_000.0+70_000.0*pulse } else { 0.0 };
+        light.intensity=if !show.enabled { 0.0 } else if show.mode == 7 { 24_000.0 } else { 32_000.0+70_000.0*pulse };
     }
     for (led,mat_handle) in &leds {
         if let Some(mut material)=materials.get_mut(&mat_handle.0) {
             let x=(led.index / 6) as f32;
             let y=(led.index % 6) as f32;
-            let wave=((x*0.39+y*0.54-t*2.6).sin()+1.0)*0.5;
-            let (r,g,b)=colors[(led.index/17 + ((t*0.6) as usize))%3];
-            let power=if show.enabled { 1.2+wave*9.0 + pulse*4.0 } else { 0.02 };
+            let animation_t = if show.mode == 7 { t * 0.08 } else { t };
+            let wave=((x*0.39+y*0.54-animation_t*2.6).sin()+1.0)*0.5;
+            let (r,g,b)=colors[(led.index/17 + ((animation_t*0.6) as usize))%3];
+            let power=if !show.enabled { 0.02 } else if show.mode == 7 { 0.75 + wave * 1.5 } else { 1.2+wave*9.0 + pulse*4.0 };
             material.emissive=LinearRgba::rgb(r*power,g*power,b*power);
         }
     }
@@ -413,6 +433,13 @@ fn update_hud(show: Res<Show>, quality: Res<quality::Quality>, mut hud: Single<&
 mod tests {
     #[test]
     fn strobe_is_not_the_default_mode() { assert_eq!(super::Show::default().mode, 0); }
+    #[test]
+    fn lounge_mode_is_steady_and_obeys_the_show_toggle() {
+        for beat in [0.0, 0.5, 1.0, 7.25] {
+            assert_eq!(super::head_intensity(7, true, 0, 6, beat, beat.fract()), 65_000.0);
+            assert_eq!(super::head_intensity(7, false, 0, 6, beat, beat.fract()), 0.0);
+        }
+    }
     #[test]
     fn every_program_aims_at_a_finite_floor_point() {
         for mode in 0..super::PROGRAMS {
