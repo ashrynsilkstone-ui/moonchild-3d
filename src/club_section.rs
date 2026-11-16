@@ -477,7 +477,7 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
         Vec2::new(0.047,0.19),Vec2::new(0.038,0.22),Vec2::new(0.025,0.225),Vec2::new(0.0,0.225)],48,uv(tile::STEEL)));
     for a in [2.38f32, 3.74] {
         let p = c + Vec3::new(a.cos(), 0.0, a.sin()) * (r + 0.05) + Vec3::Y * BAR_TOP;
-        cx.c.spawn((Mesh3d(stem.clone()), MeshMaterial3d(glass[2].clone()), Transform::from_translation(p)));
+        cx.c.spawn((Mesh3d(stem.clone()), MeshMaterial3d(s.clear_glass.clone()), Transform::from_translation(p)));
     }
     let p = c + Vec3::new(PI.cos(), 0.0, PI.sin()) * (r + 0.05) + Vec3::Y * BAR_TOP;
     cx.c.spawn((Mesh3d(shaker), MeshMaterial3d(s.steel.clone()), Transform::from_translation(p)));

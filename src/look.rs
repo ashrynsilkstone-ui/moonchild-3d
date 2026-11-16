@@ -54,6 +54,7 @@ pub struct Surfaces {
     pub marble: Handle<StandardMaterial>,
     pub oak: Handle<StandardMaterial>,
     pub smoked_glass: Handle<StandardMaterial>,
+    pub clear_glass: Handle<StandardMaterial>,
     pub opal: Handle<StandardMaterial>,
     pub foliage: Handle<StandardMaterial>,
     pub bottle_label: Handle<StandardMaterial>,
@@ -149,6 +150,10 @@ impl Surfaces {
             bottle_label: materials.add(StandardMaterial { base_color_texture: Some(bottle_label), perceptual_roughness: 0.65, ..default() }),
             foliage: materials.add(StandardMaterial { double_sided: true, cull_mode: None, ..pbr_from(&foliage) }),
             oak: materials.add(StandardMaterial { clearcoat: 0.15, clearcoat_perceptual_roughness: 0.4, ..pbr_from(&oak) }),
+            clear_glass: materials.add(StandardMaterial {
+                base_color: Color::srgba(0.55, 0.63, 0.67, 0.20), alpha_mode: AlphaMode::Blend,
+                perceptual_roughness: 0.06, reflectance: 0.6, double_sided: true, cull_mode: None, ..default()
+            }),
             smoked_glass: materials.add(StandardMaterial {
                 base_color: Color::srgba(0.10, 0.085, 0.07, 0.42), alpha_mode: AlphaMode::Blend, perceptual_roughness: 0.04,
                 reflectance: 0.6, ..default()

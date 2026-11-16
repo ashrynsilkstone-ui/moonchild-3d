@@ -41,7 +41,7 @@ jobs:
       - name: Check high-quality renderer startup
         run: |
           set +e
-          env -u MOONCHILD_SHOTS -u MOONCHILD_SHOT_FILTER -u MOONCHILD_SHOT_FAST MOONCHILD_RESOLUTION=640x360 MOONCHILD_QUALITY=hoch timeout 120s xvfb-run -a -s '-screen 0 640x360x24' target/debug/moonchild-3d > /tmp/moonchild-hoch.log 2>&1
+          env -u MOONCHILD_SHOTS -u MOONCHILD_SHOT_FILTER -u MOONCHILD_SHOT_FAST BEVY_ASSET_ROOT="$PWD" MOONCHILD_RESOLUTION=640x360 MOONCHILD_QUALITY=hoch timeout 120s xvfb-run -a -s '-screen 0 640x360x24' target/debug/moonchild-3d > /tmp/moonchild-hoch.log 2>&1
           result=$?
           set -e
           cat /tmp/moonchild-hoch.log

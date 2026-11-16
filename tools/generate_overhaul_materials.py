@@ -50,6 +50,6 @@ weave = (warp*weft + 0.35*warp + 0.35*weft) * 0.28
 variation = waves(1307, 12, 2, 16)
 height = weave + 0.08*variation
 v = np.clip(1 + 0.18*weave + 0.04*variation, .7, 1.3)
-color = np.stack((37*v, 36*v, 40*v),axis=-1)
+color = np.stack((65*v, 61*v, 67*v),axis=-1)
 rough = np.clip(215 + 12*weave, 190, 235)
 save_set('acoustic_charcoal', color, height, rough, 0)
