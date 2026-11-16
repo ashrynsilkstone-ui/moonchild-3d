@@ -22,6 +22,8 @@ pub fn viewpoints() -> Vec<Shot> {
         Shot { name: "07_floor_detail", eye: Vec3::new(-2.0, 1.2, 2.5), target: Vec3::new(0.5, 0.0, -0.5), mode: 0 },
         Shot { name: "08_stairs", eye: Vec3::new(-5.0, 1.75, 0.0), target: Vec3::new(-9.0, 1.6, 4.8), mode: 0 },
         Shot { name: "09_lounge_lower", eye: Vec3::new(1.6, 1.6, 6.0), target: Vec3::new(6.0, 0.6, 8.3), mode: 0 },
+        Shot { name: "44_dj_operator", eye: Vec3::new(0.0, 2.94, -8.68), target: Vec3::new(0.0, 2.15, -7.80), mode: 7 },
+        Shot { name: "45_dj_detail", eye: Vec3::new(-0.52, 2.57, -8.30), target: Vec3::new(-0.22, 2.17, -7.80), mode: 7 },
         Shot { name: "11_dj_gear_close", eye: Vec3::new(0.9, 2.75, -6.6), target: Vec3::new(0.0, 2.1, -7.85), mode: 0 },
         Shot { name: "12_stage_steps", eye: Vec3::new(10.5, 1.8, -3.5), target: Vec3::new(7.2, 0.6, -7.0), mode: 0 },
         Shot { name: "10_from_stage", eye: Vec3::new(-3.0, 2.74, -6.0), target: Vec3::new(1.0, 2.0, 6.0), mode: 0 },
