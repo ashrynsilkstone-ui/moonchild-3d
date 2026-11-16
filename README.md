@@ -1,4 +1,4 @@
-# MOONCHILD 3D
+# MOONCHILD 3D (Nur ein Test, gebe diesen aber frei)
 
 Ein kostenloser, selbst gebauter begehbarer Techno-Club in Rust und Bevy 0.20.1. Geometrie und Texturen werden für Moonchild selbst erzeugt. Kostenpflichtige Modelle, Texturen oder Dienste sind nicht nötig.
 
