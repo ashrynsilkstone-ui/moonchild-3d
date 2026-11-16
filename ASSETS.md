@@ -4,6 +4,7 @@ Alle Assets dieses Repositories wurden für Moonchild selbst erzeugt. Es wurden 
 
 | Pfad | Herkunft | Werkzeug |
 |---|---|---|
+| `assets/textures/moonchild/bottle_label.png` | eigenes Flaschenetikett; Beschriftung mit lokal installiertem DejaVu Sans, Schriftdatei nicht mitgeliefert | `tools/generate_bottle_label.py` (Python, Pillow) |
 | `assets/textures/moonchild/foliage_*.png` | selbst berechnete Blattadern, Normalen und ORM | `tools/generate_foliage.py` (Python, NumPy, Pillow) |
 | übrige `assets/textures/moonchild/*.png` | prozedural aus gesetztem Rauschen, Voronoi-Zellen und gezeichneten Linien berechnet | `tools/generate_textures.py` (Python, NumPy, Pillow) |
 | `assets/textures/dj/*.png` | prozedural gezeichnete DJ-Faceplates. Die Beschriftung wird beim Erzeugen mit der lokal installierten freien Schrift DejaVu Sans gesetzt; die Schriftdatei wird nicht mitgeliefert | `tools/generate_dj_textures.py` |

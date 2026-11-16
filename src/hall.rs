@@ -19,7 +19,7 @@ struct B<'a, 'w, 's> { c: &'a mut Commands<'w, 's>, meshes: &'a mut Assets<Mesh>
 impl B<'_, '_, '_> {
     /// Rounded box centred at `pos`; UVs in metres scaled by `1/tile`.
     fn bx(&mut self, size: Vec3, r: f32, mat: &Handle<StandardMaterial>, pos: Vec3, tile_m: f32) {
-        let mesh = self.meshes.add(shapes::rounded_box(size, r.min(size.min_element() * 0.45), 2, 1.0 / tile_m).build());
+        let mesh = self.meshes.add(shapes::rounded_box(size, r.min(size.min_element() * 0.45), 4, 1.0 / tile_m).build());
         self.c.spawn((Mesh3d(mesh), MeshMaterial3d(mat.clone()), Transform::from_translation(pos)));
     }
     fn put(&mut self, m: MeshData, mat: &Handle<StandardMaterial>) {
@@ -59,7 +59,7 @@ fn truss(a: Vec3, b: Vec3, half: f32, chord_sides: usize, brace_sides: usize) ->
 
 /// Crescent in the XY plane (tips at top and bottom), visible from -Z.
 fn crescent(center: Vec3, radius: f32, thickness: f32) -> MeshData {
-    let n = 48;
+    let n = 96;
     let outer: Vec<Vec3> = (0..=n).map(|i| { let a = FRAC_PI_2 + PI * i as f32 / n as f32; center + Vec3::new(a.cos(), a.sin(), 0.0) * radius }).collect();
     let inner: Vec<Vec3> = (0..=n).map(|i| { let a = FRAC_PI_2 + PI * i as f32 / n as f32;
         center + Vec3::new(a.cos() * radius * (1.0 - thickness), a.sin() * radius, 0.0) }).collect();
@@ -132,6 +132,17 @@ fn walls(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
             }
         }
     }
+    // Repeated opal wall sconces: shallow wall-mounted details, above the bar
+    // and clear of all navigable collision volumes. Meshes are shared.
+    let mount = b.meshes.add(shapes::rounded_box(Vec3::new(0.08, 0.52, 0.19), 0.025, 6, 1.0 / tile::BRASS).build());
+    let shade = b.meshes.add(shapes::cushion(Vec3::new(0.045, 0.20, 0.07), 0.7, 0.65, 40, 1.0).build());
+    for sx in [-1.0f32, 1.0] {
+        for z in [-7.6f32, -4.7, -1.8, 1.1, 4.0, 7.6] {
+            let x = sx * (ROOM_X - 0.11);
+            b.c.spawn((Mesh3d(mount.clone()), MeshMaterial3d(s.brass.clone()), Transform::from_xyz(x, 3.25, z)));
+            b.c.spawn((Mesh3d(shade.clone()), MeshMaterial3d(s.opal.clone()), Transform::from_xyz(x - sx * 0.075, 3.25, z)));
+        }
+    }
     // Entrance wall: amber panels with fins, a crescent moon in the middle.
     for k in 0..=10 {
         let x = -10.0 + 2.0 * k as f32;
@@ -158,10 +169,10 @@ fn ceiling(b: &mut B, s: &Surfaces, _neon: &Neon) {
     // Two large ventilation ducts with flanges and hangers, below the beams.
     for sx in [-1.0f32, 1.0] {
         let x = sx * 7.6;
-        b.put(shapes::tube(&[Vec3::new(x, 6.1, -9.3), Vec3::new(x, 6.1, 9.3)], 0.3, 20, 1.0 / tile::STEEL), &s.steel);
+        b.put(shapes::tube(&[Vec3::new(x, 6.1, -9.3), Vec3::new(x, 6.1, 9.3)], 0.3, 32, 1.0 / tile::STEEL), &s.steel);
         for k in 0..13 {
             let z = -9.0 + 1.5 * k as f32;
-            b.put(shapes::tube(&[Vec3::new(x, 6.1, z - 0.04), Vec3::new(x, 6.1, z + 0.04)], 0.335, 20, 1.0 / tile::DARKSTEEL), &s.darksteel);
+            b.put(shapes::tube(&[Vec3::new(x, 6.1, z - 0.04), Vec3::new(x, 6.1, z + 0.04)], 0.335, 32, 1.0 / tile::DARKSTEEL), &s.darksteel);
             if k % 2 == 0 {
                 b.put(shapes::tube(&[Vec3::new(x - 0.2, 6.35, z), Vec3::new(x - 0.2, 6.9, z)], 0.012, 6, 1.0), &s.darksteel);
                 b.put(shapes::tube(&[Vec3::new(x + 0.2, 6.35, z), Vec3::new(x + 0.2, 6.9, z)], 0.012, 6, 1.0), &s.darksteel);
