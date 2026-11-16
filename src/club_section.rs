@@ -392,6 +392,14 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
     cx.put(shapes::fluted_skin(&wall, 1.0, 3.0, 0.065, 0.012, uv(tile::OAK)), &s.oak);
     let (bottle, bottle_lo) = cx.mesh_pair(|n| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.034, 0.0), Vec2::new(0.037, 0.012), Vec2::new(0.037, 0.19), Vec2::new(0.03, 0.225),
         Vec2::new(0.014, 0.26), Vec2::new(0.012, 0.31), Vec2::new(0.015, 0.318), Vec2::new(0.0, 0.322)], n, 1.0), 36, 8);
+    // The sleeve is a separate, single UV-wrapped surface over the glass.
+    let sleeve = cx.mesh_pair(|n| {
+        let mut m = shapes::lathe(&[Vec2::new(0.0377, 0.0), Vec2::new(0.0377, 0.10)], n, 1.0);
+        for uv in &mut m.uvs { uv[0] /= TAU * 0.05; uv[1] /= 0.10; }
+        m
+    }, 48, 12);
+    let cap = cx.mesh_pair(|n| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.015, 0.0),
+        Vec2::new(0.015, 0.022), Vec2::new(0.0, 0.022)], n, uv(tile::BRASS)), 32, 8);
     for (ni, dz) in [-1.15f32, 0.0, 1.15].into_iter().enumerate() {
         let base = Vec3::new(wall_x - 0.04, 1.08, c.z + dz);
         cx.put(shapes::arch_panel(base, Vec3::Z, Vec3::NEG_X, 0.98, 1.82, uv(tile::BACKLIGHT)), &s.backlight_amber);
@@ -402,8 +410,13 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
             for i in 0..4 {
                 let z = c.z + dz - 0.33 + i as f32 * 0.22;
                 let scale = 0.85 + 0.3 * (((i * 7 + k * 3 + ni) % 5) as f32 / 4.0);
+                let x = wall_x - 0.2 + if i % 2 == 0 { 0.05 } else { -0.04 };
                 cx.spawn_lod(&bottle, &bottle_lo, &glass[(i + k + ni) % 5],
-                    Transform::from_xyz(wall_x - 0.2 + if i % 2 == 0 { 0.05 } else { -0.04 }, y + 0.01, z).with_scale(Vec3::new(1.0, scale, 1.0)), lod::SMALL, false);
+                    Transform::from_xyz(x, y + 0.01, z).with_scale(Vec3::new(1.0, scale, 1.0)), lod::SMALL, false);
+                cx.spawn_lod(&sleeve.0, &sleeve.1, &s.bottle_label,
+                    Transform::from_xyz(x, y + 0.01 + 0.065 * scale, z).with_scale(Vec3::new(1.0, scale, 1.0)), lod::SMALL, false);
+                cx.spawn_lod(&cap.0, &cap.1, &s.brass,
+                    Transform::from_xyz(x, y + 0.01 + 0.30 * scale, z).with_scale(Vec3::new(1.0, scale, 1.0)), lod::SMALL, false);
             }
         }
     }
@@ -455,10 +468,10 @@ fn halo(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMaterial>
     let c = Vec3::new(hx, hy, hz);
     let r = RING_RADIUS;
     let ring = shifted(rounded_rect(0.5, 0.24, 0.09, 5), 0.0, 0.0);
-    cx.put(sweep(&ring, &arc_frames(c, r, 0.0, TAU, 160), true, false, uv(tile::DARKSTEEL)), &s.darksteel);
+    cx.put(sweep(&ring, &arc_frames(c, r, 0.0, TAU, 240), true, false, uv(tile::DARKSTEEL)), &s.darksteel);
     // Neon rings underneath and an inner floating halo.
     for (rr, y, mat) in [(r - 0.16, -0.012, &neon.cyan), (r + 0.16, -0.012, &neon.magenta), (r - 0.6, 0.06, &neon.cyan)] {
-        let pts: Vec<Vec3> = (0..=160).map(|i| { let a = TAU * i as f32 / 160.0; c + Vec3::new(a.cos() * rr, y, a.sin() * rr) }).collect();
+        let pts: Vec<Vec3> = (0..=240).map(|i| { let a = TAU * i as f32 / 240.0; c + Vec3::new(a.cos() * rr, y, a.sin() * rr) }).collect();
         cx.put(tube(&pts, if rr < r - 0.3 { 0.035 } else { 0.022 }, 10, 1.0), mat);
     }
     // Hub with a warm downlight.
@@ -490,7 +503,10 @@ fn halo(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMaterial>
         let (r0, r1) = (r + 0.7, limit.min(9.5));
         if r1 <= r0 + 0.5 { continue; }
         let y = CEILING - 0.03;
-        cx.put(tube(&[Vec3::new(hx, y, hz) + d * r0, Vec3::new(hx, y, hz) + d * r1], 0.018, 8, 1.0), if i % 2 == 0 { &neon.blue } else { &neon.magenta });
+        let a = Vec3::new(hx, y, hz) + d * r0;
+        let b = Vec3::new(hx, y, hz) + d * r1;
+        cx.put(tube(&[a + Vec3::Y * 0.025, b + Vec3::Y * 0.025], 0.034, 12, uv(tile::DARKSTEEL)), &s.darksteel);
+        cx.put(tube(&[a, b], 0.018, 12, 1.0), if i % 2 == 0 { &neon.blue } else { &neon.magenta });
     }
     // Warm house spots mounted on the ring.
     for i in 0..6 {
@@ -545,13 +561,19 @@ pub fn spawn_head_yokes(c: &mut Commands, meshes: &mut Assets<Mesh>, s: &Surface
 fn booth(cx: &mut Ctx, s: &Surfaces, neon: &Neon) {
     let centre = Vec3::new(0.0, STAGE_Y, BOOTH_CENTER_Z);
     let (a0, a1) = (FRAC_PI_2 - BOOTH_HALF_ANGLE, FRAC_PI_2 + BOOTH_HALF_ANGLE);
-    let f = arc_frames(centre, BOOTH_RADIUS, a0, a1, 40);
+    let f = arc_frames(centre, BOOTH_RADIUS, a0, a1, 96);
     let h = BOOTH_TOP - STAGE_Y;
     cx.put(sweep(&shifted(rounded_rect(0.84, h, 0.12, 6), -0.07, 0.0), &f, true, true, uv(tile::DARKSTEEL)), &s.darksteel);
     // Backlit perforated front, slightly in front of the body.
-    let inner = arc_frames(centre, BOOTH_RADIUS, a0 + 0.02, a1 - 0.02, 40);
+    let inner = arc_frames(centre, BOOTH_RADIUS, a0 + 0.02, a1 - 0.02, 96);
     cx.put(sweep(&panel_facing(0.36, 0.16, h - 0.22, Vec2::X), &inner, false, false, uv(tile::BACKLIGHT)), &s.backlight_cyan);
     cx.put(sweep(&panel_facing(0.375, 0.14, h - 0.2, Vec2::X), &inner, false, false, uv(tile::GRILLE)), &s.grille);
+    // Vertical brass ribs and fine edging add depth to the booth face.
+    for frame in f.iter().step_by(8) {
+        let p = frame.pos + frame.side * 0.395;
+        cx.put(tube(&[p + Vec3::Y * 0.17, p + Vec3::Y * (h - 0.19)], 0.008, 12, uv(tile::BRASS)), &s.brass);
+    }
+    cx.put(tube(&offset(&f, 0.395, h - 0.17), 0.012, 12, uv(tile::BRASS)), &s.brass);
     cx.put(tube(&offset(&f, 0.34, 0.04), 0.014, 8, 1.0), &neon.magenta);
     cx.put(tube(&offset(&f, 0.36, h - 0.06), 0.012, 8, 1.0), &neon.cyan);
 }
@@ -574,8 +596,8 @@ fn stage_steps(cx: &mut Ctx, s: &Surfaces, neon: &Neon) {
 }
 
 fn speakers(cx: &mut Ctx, s: &Surfaces, neon: &Neon) {
-    let cabinet = cx.mesh(shapes::rounded_box(Vec3::new(0.83, 1.02, 0.78), 0.06, 4, uv(tile::DARKSTEEL)));
-    let cone = cx.mesh(shapes::lathe(&[Vec2::new(0.0, -0.05), Vec2::new(0.05, -0.045), Vec2::new(0.2, 0.0), Vec2::new(0.25, 0.02), Vec2::new(0.27, 0.025)], 32, 1.0));
+    let cabinet = cx.mesh(shapes::rounded_box(Vec3::new(0.83, 1.02, 0.78), 0.06, 8, uv(tile::DARKSTEEL)));
+    let cone = cx.mesh(shapes::lathe(&[Vec2::new(0.0, -0.05), Vec2::new(0.05, -0.045), Vec2::new(0.2, 0.0), Vec2::new(0.25, 0.02), Vec2::new(0.27, 0.025)], 64, 1.0));
     let front = |x: f32| path_frames(&[Vec3::new(x + 0.37, 0.0, -8.1), Vec3::new(x - 0.37, 0.0, -8.1)]);
     for &x in &SPEAKERS_X {
         for k in 0..2 {

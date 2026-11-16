@@ -150,11 +150,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     block(&mut commands,&mut meshes,s.concrete.clone(),Vec3::new(0.0,H/2.0,D/2.0),Vec3::new(W,H,0.3),concrete_uv);
     block(&mut commands,&mut meshes,s.concrete.clone(),Vec3::new(0.0,H+0.12,0.0),Vec3::new(W,0.25,D),concrete_uv);
     // Rounded steel columns and ceiling beams.
-    let column = meshes.add(shapes::rounded_box(Vec3::new(0.42, H, 0.42), 0.06, 3, steel_uv).build());
+    let column = meshes.add(shapes::rounded_box(Vec3::new(0.42, H, 0.42), 0.06, 6, steel_uv).build());
     for &(x, z) in &navigation::layout::ROOM_COLUMNS {
         commands.spawn((Mesh3d(column.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_xyz(x, H * 0.5, z)));
     }
-    let beam = meshes.add(shapes::rounded_box(Vec3::new(22.0, 0.24, 0.24), 0.05, 3, steel_uv).build());
+    let beam = meshes.add(shapes::rounded_box(Vec3::new(22.0, 0.24, 0.24), 0.05, 6, steel_uv).build());
     for &z in &[-7.5,-2.0,3.5] {
         commands.spawn((Mesh3d(beam.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_xyz(0.0, 6.62, z)));
     }
@@ -167,10 +167,10 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     commands.spawn((Mesh3d(deck),MeshMaterial3d(s.tread.clone()),Transform::from_xyz(0.0,0.94,-7.55)));
     commands.spawn((Mesh3d(meshes.add(shapes::tube(&[Vec3::new(-6.95,0.9,-5.33),Vec3::new(6.95,0.9,-5.33)],0.014,8,1.0).build())), MeshMaterial3d(neon.cyan.clone())));
     dj_gear::spawn(&mut commands, &mut meshes, &mut materials, &asset_server);
-    // LED tiles, individually animated via material emissive colour, in a rounded frame.
+    // Closely fitted LED modules with narrow seams, individually animated in a rounded frame.
     commands.spawn((Mesh3d(meshes.add(shapes::rounded_box(Vec3::new(11.0,3.75,0.12),0.05,3,steel_uv).build())),
         MeshMaterial3d(s.darksteel.clone()), Transform::from_xyz(0.0,4.5,-9.82)));
-    let tile_mesh = meshes.add(shapes::rounded_box(Vec3::new(0.5,0.5,0.06),0.035,2,1.0).build());
+    let tile_mesh = meshes.add(shapes::rounded_box(Vec3::new(0.525,0.535,0.025),0.004,4,1.0).build());
     for col in 0..20 {
         for row in 0..6 {
             let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(2.0,0.1,3.0), unlit: false, ..default() });

@@ -142,6 +142,7 @@ Die Nahstufe ist dicht tesselliert, Sofakissen haben zum Beispiel rund 3000 Drei
 | `terrazzo` | 2048² | 2 m | polierter Anthrazit-Terrazzo mit Marmor-, Messing- und Weinrot-Splittern (Hallen- und Galerieboden) |
 | `marble` | 2048² | 2 m | schwarzer Marmor im Nero-Marquina-Stil mit weißen Adern (Tanzfläche, Theken, Tische) |
 | `concrete` | 2048² | 2 m | dunkler Schalungsbeton mit Tafelfugen und Ankerlöchern (Wände, Decke) |
+| `bottle_label` | 1024×512 | Einzelmotiv | eigene Moonchild-Etiketten auf den Barflaschen |
 | `foliage` | 1024² | Einzelblatt | Blatt mit Adern: Base-Color-, Normal- und ORM-Map (Tischpflanzen) |
 | `velvet` | 1024² | 0,5 m | weinroter Samt mit gedrücktem Flor |
 | `boucle` | 1024² | 0,3 m | cremefarbenes Bouclé aus Garnschlaufen |
@@ -203,13 +204,14 @@ Das ist eine vereinfachte 2,5D-Kollision, keine Physik-Engine und keine Mesh-Kol
 ```bash
 python3 tools/generate_textures.py
 python3 tools/generate_foliage.py
+python3 tools/generate_bottle_label.py
 ```
 
 ```bash
 python3 tools/generate_textures.py velvet marble
 ```
 
-- Ohne Argument erzeugt `generate_textures.py` seine ausgelieferten Sets, mit Namen nur die genannten; `generate_foliage.py` erzeugt die Blatttexturen.
+- Ohne Argument erzeugt `generate_textures.py` seine ausgelieferten Sets, mit Namen nur die genannten; `generate_foliage.py` erzeugt die Blatttexturen und `generate_bottle_label.py` die Barflaschen-Etiketten.
 - `MOONCHILD_TEX_SCALE` (Standard 2) skaliert die Auflösung, alle pixelbasierten Größen skalieren mit. Mit `1` entsteht die halbe Auflösung bei gleichem Aussehen.
 - Die ausgemusterten Sets `floor` und `leather` werden nicht mehr ausgeliefert, lassen sich aber per Name noch erzeugen.
 
@@ -289,3 +291,7 @@ MOONCHILD_RESOLUTION=2560x1440 cargo run --release
 Gültig sind Breiten von 640 bis 7680 und Höhen von 360 bis 4320 Pixeln; ungültige Werte fallen auf 1920×1080 zurück. Höhere Auflösung und mehr nahe Geometrie kosten zusätzliche Rechenleistung. Grafische Qualität und Bildrate auf einer Radeon RX 9070 XT sind dadurch nicht zugesichert. Die Szene nutzt weiterhin Bevy und keine Unreal-Engine-5-Techniken wie Nanite oder Lumen.
 
 Prüfung dieses Detailausbaus: Auf Ubuntu liefen `cargo check --locked`, `cargo test --locked` (19 bestanden) und `cargo build --locked` erfolgreich. Der neue Stand wurde zusätzlich mit Mesa llvmpipe/Vulkan in der Stufe Mittel bei 960×600 gestartet; dabei entstand `docs/screenshots/31_lounge_table.jpg` direkt aus dem Spiel. Der Software-Renderer erlaubt keine Aussage über Qualitätseinstellungen oder Bildrate auf der Radeon RX 9070 XT. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43888219908).
+
+## Ausbau von Halle, Bühne, Bar und Decke
+
+Die Hallenpaneele und tragenden Säulen haben feinere Rundungen und gemeinsam verwendete Opal-Wandleuchten. Die animierten Bühnenmodule liegen mit schmalen Fugen dichter zusammen; das gebogene DJ-Pult hat zusätzliche Messingstreben und eine feinere Kontur. Die Barflaschen tragen ein eigenes Moonchild-Etikett und Verschlüsse. Der Deckenring, die verkleideten radialen Lichtleisten, Lüftungsrohre und Lautsprechergehäuse wurden weiter ausgearbeitet. Bestehende Bewegung und Kollisionen bleiben in ihrer bisherigen Form erhalten; die neuen Details bleiben innerhalb beziehungsweise direkt an den bestehenden Einrichtungsgrenzen.
