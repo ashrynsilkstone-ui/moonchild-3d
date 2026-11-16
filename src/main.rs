@@ -167,15 +167,23 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     commands.spawn((Mesh3d(deck),MeshMaterial3d(s.tread.clone()),Transform::from_xyz(0.0,0.94,-7.55)));
     commands.spawn((Mesh3d(meshes.add(shapes::tube(&[Vec3::new(-6.95,0.9,-5.33),Vec3::new(6.95,0.9,-5.33)],0.014,8,1.0).build())), MeshMaterial3d(neon.cyan.clone())));
     dj_gear::spawn(&mut commands, &mut meshes, &mut materials, &asset_server);
-    // Closely fitted LED modules with narrow seams, individually animated in a rounded frame.
-    commands.spawn((Mesh3d(meshes.add(shapes::rounded_box(Vec3::new(11.0,3.75,0.12),0.05,3,steel_uv).build())),
+    // One high-resolution emissive screen replaces oversized square pixels.
+    commands.spawn((Mesh3d(meshes.add(shapes::rounded_box(Vec3::new(11.0,3.75,0.12),0.05,6,steel_uv).build())),
         MeshMaterial3d(s.darksteel.clone()), Transform::from_xyz(0.0,4.5,-9.82)));
-    let tile_mesh = meshes.add(shapes::rounded_box(Vec3::new(0.525,0.535,0.025),0.004,4,1.0).build());
+    let stage_screen = look::stage_screen(&asset_server, &mut mip_queue);
+    let screen_material = materials.add(StandardMaterial {
+        base_color: Color::BLACK, emissive_texture: Some(stage_screen), emissive: LinearRgba::rgb(1.4,1.4,1.4),
+        perceptual_roughness: 0.6, ..default()
+    });
+    commands.spawn((Mesh3d(meshes.add(Plane3d::default().mesh().size(10.6,3.24))), MeshMaterial3d(screen_material),
+        Transform::from_xyz(0.0,4.5,-9.744).with_rotation(Quat::from_rotation_x(PI * 0.5))));
+    // Animated level bars keep the display responsive to the existing show modes.
+    let led_mesh = meshes.add(shapes::rounded_box(Vec3::new(0.30,0.035,0.01),0.004,3,1.0).build());
     for col in 0..20 {
-        for row in 0..6 {
-            let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(2.0,0.1,3.0), unlit: false, ..default() });
-            commands.spawn((Mesh3d(tile_mesh.clone()), MeshMaterial3d(material),
-                Transform::from_xyz((col as f32-9.5)*0.53, 3.15+row as f32*0.54,-9.74), Led { index: col*6+row }));
+        for row in 0..3 {
+            let material = materials.add(StandardMaterial { base_color: Color::BLACK, emissive: LinearRgba::rgb(0.2,0.5,1.0), ..default() });
+            commands.spawn((Mesh3d(led_mesh.clone()), MeshMaterial3d(material),
+                Transform::from_xyz((col as f32-9.5)*0.50, 2.97+row as f32*0.055,-9.735), Led { index: col*6+row }));
         }
     }
     // Neon bands along the side walls; the low right band stops at the bar.
@@ -441,7 +449,7 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
             let animation_t = if show.mode == 7 { t * 0.08 } else { t };
             let wave=((x*0.39+y*0.54-animation_t*2.6).sin()+1.0)*0.5;
             let (r,g,b)=colors[(led.index/17 + ((animation_t*0.6) as usize))%3];
-            let power=if !show.enabled { 0.02 } else if show.mode == 7 { 0.75 + wave * 1.5 } else { 1.2+wave*9.0 + pulse*4.0 };
+            let power=if !show.enabled { 0.02 } else if show.mode == 7 { 0.75 + wave * 1.5 } else { 0.35+wave*1.5 + pulse*0.6 };
             material.emissive=LinearRgba::rgb(r*power,g*power,b*power);
         }
     }
