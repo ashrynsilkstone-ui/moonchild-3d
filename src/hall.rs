@@ -6,6 +6,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use bevy::prelude::*;
 use crate::club_section::Neon;
 use crate::look::{tile, Surfaces};
+use crate::lod;
 use crate::navigation::layout::*;
 use crate::shapes::{self, MeshData};
 
@@ -35,14 +36,14 @@ fn merge(into: &mut MeshData, other: MeshData) {
 }
 
 /// Square box truss between `a` and `b` with chords and zig-zag bracing.
-fn truss(a: Vec3, b: Vec3, half: f32) -> MeshData {
+fn truss(a: Vec3, b: Vec3, half: f32, chord_sides: usize, brace_sides: usize) -> MeshData {
     let axis = (b - a).normalize();
     let up = if axis.y.abs() > 0.9 { Vec3::Z } else { Vec3::Y };
     let u = axis.cross(up).normalize() * half;
     let v = axis.cross(u).normalize() * half;
     let corners = [u + v, u - v, -u - v, -u + v];
     let mut m = MeshData::default();
-    for c in corners { merge(&mut m, shapes::tube(&[a + c, b + c], 0.022, 8, 1.0)); }
+    for c in corners { merge(&mut m, shapes::tube(&[a + c, b + c], 0.022, chord_sides, 1.0)); }
     let len = a.distance(b);
     let n = (len / 0.3).round().max(1.0) as usize;
     for k in 0..n {
@@ -50,7 +51,7 @@ fn truss(a: Vec3, b: Vec3, half: f32) -> MeshData {
         for f in 0..4 {
             let (c0, c1) = (corners[f], corners[(f + 1) % 4]);
             let (s, e) = if k % 2 == 0 { (c0, c1) } else { (c1, c0) };
-            merge(&mut m, shapes::tube(&[p0 + s, p1 + e], 0.009, 6, 1.0));
+            merge(&mut m, shapes::tube(&[p0 + s, p1 + e], 0.009, brace_sides, 1.0));
         }
     }
     m
@@ -183,13 +184,21 @@ fn back_wall(b: &mut B, s: &Surfaces, bay: &Bays, neon: &Neon) {
     b.put(shapes::tube(&[Vec3::new(-5.9, 2.58, zw + 0.23), Vec3::new(5.9, 2.58, zw + 0.23)], 0.014, 8, 1.0), &neon.cyan);
 
     // Truss portal: two towers and a cross beam, with hanging LED bars.
-    let mut t = MeshData::default();
+    // Two levels of detail: round chords up close, 4/3-sided tubes from afar.
+    let portal = |chord: usize, brace: usize| {
+        let mut t = MeshData::default();
+        for sx in [-1.0f32, 1.0] {
+            merge(&mut t, truss(Vec3::new(sx * TRUSS_X, STAGE_Y, TRUSS_Z), Vec3::new(sx * TRUSS_X, TRUSS_Y, TRUSS_Z), 0.15, chord, brace));
+        }
+        merge(&mut t, truss(Vec3::new(-TRUSS_X, TRUSS_Y, TRUSS_Z), Vec3::new(TRUSS_X, TRUSS_Y, TRUSS_Z), 0.15, chord, brace));
+        t
+    };
+    let (hi, lo) = (b.meshes.add(portal(12, 8).build()), b.meshes.add(portal(4, 3).build()));
+    b.c.spawn((Mesh3d(hi), MeshMaterial3d(s.darksteel.clone()), lod::near(lod::LARGE, true)));
+    b.c.spawn((Mesh3d(lo), MeshMaterial3d(s.darksteel.clone()), lod::far(lod::LARGE, true)));
     for sx in [-1.0f32, 1.0] {
-        merge(&mut t, truss(Vec3::new(sx * TRUSS_X, STAGE_Y, TRUSS_Z), Vec3::new(sx * TRUSS_X, TRUSS_Y, TRUSS_Z), 0.15));
         b.bx(Vec3::new(0.6, 0.06, 0.6), 0.02, &s.darksteel, Vec3::new(sx * TRUSS_X, STAGE_Y + 0.03, TRUSS_Z), tile::DARKSTEEL);
     }
-    merge(&mut t, truss(Vec3::new(-TRUSS_X, TRUSS_Y, TRUSS_Z), Vec3::new(TRUSS_X, TRUSS_Y, TRUSS_Z), 0.15));
-    b.put(t, &s.darksteel);
     for (i, x) in [-5.4f32, -2.7, 0.0, 2.7, 5.4].into_iter().enumerate() {
         b.bx(Vec3::new(1.2, 0.12, 0.14), 0.03, &s.darksteel, Vec3::new(x, TRUSS_Y - 0.28, TRUSS_Z + 0.2), tile::DARKSTEEL);
         let mat = if i % 2 == 0 { &neon.cyan } else { &neon.magenta };

@@ -45,7 +45,7 @@ const SETTLE: u32 = 45;
 const MEASURE: u32 = 120;
 /// `MOONCHILD_SHOT_FAST=1` shortens waits for slow software renderers; frame times are then meaningless.
 fn fast() -> bool { std::env::var_os("MOONCHILD_SHOT_FAST").is_some() }
-fn waits() -> (u32, u32, u32) { if fast() { (40, 12, 2) } else { (SETTLE_FIRST, SETTLE, MEASURE) } }
+fn waits() -> (u32, u32, u32) { if fast() { (110, 12, 2) } else { (SETTLE_FIRST, SETTLE, MEASURE) } }
 
 impl Tour {
     pub fn from_env() -> Option<Self> {

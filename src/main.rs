@@ -3,8 +3,10 @@ mod capture;
 mod club_section;
 mod dj_gear;
 mod hall;
+mod lod;
 mod look;
 mod navigation;
+mod quality;
 mod shapes;
 
 use std::f32::consts::PI;
@@ -71,8 +73,9 @@ fn main() {
         .insert_resource(GlobalAmbientLight { color: Color::srgb(0.80, 0.73, 0.65), brightness: 270.0, ..default() })
         .init_resource::<Show>()
         .init_resource::<look::MipQueue>()
+        .insert_resource(quality::Quality::from_env())
         .add_systems(Startup, setup)
-        .add_systems(Update, (walk, controls, animate_lights, update_hud, look::generate_mipmaps))
+        .add_systems(Update, (walk, controls, animate_lights, update_hud, look::generate_mipmaps, quality::cycle, quality::apply.after(quality::cycle)))
         .add_systems(Update, capture::run_tour.after(walk));
     if let Some(tour) = tour { app.insert_resource(tour); }
     app.run();
@@ -182,10 +185,15 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                 inner_angle: 0.11, outer_angle: 0.38, shadow_maps_enabled: false, ..default() },
             Transform::from_translation(base).looking_at(rest, Vec3::Z),
             MovingHead { index: i, base, stage },
+            quality::VolumetricSource,
         )).with_children(|c| {
-            for (mesh, mat, t) in &parts { c.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(mat.clone()), *t)); }
+            for (mesh, mat, t, range) in &parts {
+                // The fixture body surrounds the light; it must not shadow its own beam.
+                let mut part = c.spawn((Mesh3d(mesh.clone()), MeshMaterial3d(mat.clone()), *t, bevy::light::NotShadowCaster));
+                if let Some(range) = range { part.insert(range.clone()); }
+            }
             c.spawn((Mesh3d(beam_mesh.clone()), MeshMaterial3d(beam_material), Transform::from_xyz(0.0, 0.0, -0.17),
-                Beam, bevy::light::NotShadowCaster));
+                Beam, quality::FakeBeam, bevy::light::NotShadowCaster));
         });
     }
     for (i,(x,z)) in [(-8.0,-4.0),(8.0,-4.0),(-8.0,5.0),(8.0,5.0)].iter().enumerate() {
@@ -204,6 +212,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                 shadow_maps_enabled: true, contact_shadows_enabled: true, ..default() },
             // Vertical spots need an up vector that is not parallel to the beam.
             Transform::from_xyz(x,y-0.02,z).looking_at(Vec3::new(x,0.0,z),Vec3::Z),
+            quality::UltraShaft,
         ));
     }
     // Warm stage washes for the DJ booth.
@@ -215,13 +224,16 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
         ));
     }
 
+    // Club haze for the volumetric light (Hoch/Ultra).
+    commands.spawn(quality::haze(Vec3::new(W - 0.4, H - 0.1, D - 0.4), Vec3::new(0.0, H * 0.5, 0.0)));
+
     // Camera starts beside the dance floor, looking towards the DJ stage (-Z).
     commands.spawn((look::camera_bundle(&mut images),
         Transform::from_xyz(0.0,navigation::EYE,6.6).looking_at(Vec3::new(0.0,2.3,-7.0),Vec3::Y),
         Player { yaw: 0.0, pitch: 0.03, motion: navigation::Motion::standing() }));
     // Overlay and instructions (ASCII only: the default UI font lacks some glyphs).
     commands.spawn((
-        Text::new("MOONCHILD  |  3D CLUB  |  WASD gehen  |  Shift schneller  |  Leertaste springen  |  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe  5 Faecher  6 Kegel  7 Chase  |  L Show-Licht an/aus  |  +/- Tempo  |  ESC beenden"),
+        Text::new("MOONCHILD  |  3D CLUB  |  WASD gehen  |  Shift schneller  |  Leertaste springen  |  rechte Maustaste + Maus umsehen\n1 Neon  2 Rave  3 Chill  4 Strobe  5 Faecher  6 Kegel  7 Chase  |  L Show-Licht an/aus  |  +/- Tempo  |  F2 Grafik  |  ESC beenden"),
         TextFont { font_size: FontSize::Px(17.0), ..default() },
         TextColor(Color::srgb(0.87,0.91,1.0)),
         Node { position_type: PositionType::Absolute, top: px(16), left: px(18), ..default() },
@@ -390,9 +402,9 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
         }
     }
 }
-fn update_hud(show: Res<Show>, mut hud: Single<&mut Text,With<StatusText>>) {
+fn update_hud(show: Res<Show>, quality: Res<quality::Quality>, mut hud: Single<&mut Text,With<StatusText>>) {
     let mode=PROGRAM_NAMES[show.mode];
-    hud.0=format!("MOONCHILD  |  LICHT: {} {}  |  BPM: {:.0}  |  SPEED: {:.1}x",mode,if show.enabled {"ON"} else {"OFF"},show.beat,show.speed);
+    hud.0=format!("MOONCHILD  |  LICHT: {} {}  |  BPM: {:.0}  |  SPEED: {:.1}x  |  GRAFIK: {}",mode,if show.enabled {"ON"} else {"OFF"},show.beat,show.speed,quality.name());
 }
 
 #[cfg(test)]

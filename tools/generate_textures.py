@@ -14,12 +14,19 @@ Optional:
 All maps are periodic, so they tile without visible seams. Requires numpy and Pillow;
 neither is needed to play the game.
 """
+import os
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
 OUT = Path(__file__).resolve().parents[1] / 'assets/textures/moonchild'
 OUT.mkdir(parents=True, exist_ok=True)
+
+# Resolution multiplier. All pixel-based sizes below are written for S = 1
+# (1024 px for concrete/floor, 512 px for the rest) and scaled by S, so a
+# higher S keeps the look and physical feature size but adds finer detail.
+# Moonchild ships with S = 2 (2048 px / 1024 px).
+S = int(os.environ.get('MOONCHILD_TEX_SCALE', '2'))
 
 
 # ---------------------------------------------------------------- helpers
@@ -45,6 +52,7 @@ def spectral(n, seed, beta=2.0, fmin=1.0, fmax=None, aniso=(1.0, 1.0)):
 def blur(img, sigma_x, sigma_y=None):
     """Periodic Gaussian blur through the FFT (keeps maps tileable)."""
     sigma_y = sigma_x if sigma_y is None else sigma_y
+    sigma_x, sigma_y = sigma_x * S, sigma_y * S
     n = img.shape[0]
     fx, fy, _ = freq_grid(n)
     g = np.exp(-2 * (np.pi ** 2) * ((fx / n * sigma_x) ** 2 + (fy / n * sigma_y) ** 2))
@@ -81,12 +89,13 @@ def wrapped_lines(n, segments, width, seed=None):
         for ox in (-n, 0, n):
             for oy in (-n, 0, n):
                 d.line([((x0 + ox) * s, (y0 + oy) * s), ((x1 + ox) * s, (y1 + oy) * s)],
-                       fill=int(value * 255), width=max(1, int(width * s)))
+                       fill=int(value * 255), width=max(1, int(width * S * s)))
     return np.asarray(img.resize((n, n), Image.LANCZOS), dtype=float) / 255.0
 
 
 def normal_map(h, strength):
     """Height in pixels-relative units -> tangent-space normal (green up)."""
+    strength = strength * S  # per-pixel slope shrinks as resolution grows
     dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5 * strength
     dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5 * strength
     n = np.stack((-dx, dy, np.ones_like(h)), axis=-1)
@@ -134,7 +143,7 @@ def tint(base_rgb, variation):
 # ---------------------------------------------------------------- concrete
 def concrete():
     """Dark board-formed concrete. Tile = 2 m x 2 m: four 1 m form panels with tie holes."""
-    n = 1024
+    n = 1024 * S
     big = spectral(n, 11, beta=3.2, fmin=1, fmax=10)
     mid = spectral(n, 12, beta=2.0, fmin=4, fmax=90)
     fine = spectral(n, 13, beta=0.6, fmin=60)
@@ -143,7 +152,8 @@ def concrete():
     f1, f2, cid = voronoi(n, 90, 15)
     pore_mask = ((cid % 7) == 0) & (f1 < 0.20)
     pores = blur(pore_mask.astype(float), 0.8)
-    y, x = np.mgrid[0:n, 0:n]
+    y, x = np.mgrid[0:n, 0:n] / S
+    m = n // S
     # Panel joints every 512 px (1 m) with a slightly proud lip.
     jx = np.minimum(x % 512, 512 - x % 512); jy = np.minimum(y % 512, 512 - y % 512)
     joint = np.exp(-(np.minimum(jx, jy) / 2.2) ** 2)
@@ -152,8 +162,8 @@ def concrete():
     stain = np.zeros((n, n))
     for cx in (128, 384, 640, 896):
         for cy in (128, 384, 640, 896):
-            dx = np.minimum(np.abs(x - cx), n - np.abs(x - cx)); dy = (y - cy) % n
-            dyc = np.minimum(dy, n - dy)
+            dx = np.minimum(np.abs(x - cx), m - np.abs(x - cx)); dy = (y - cy) % m
+            dyc = np.minimum(dy, m - dy)
             r = np.sqrt(dx ** 2 + dyc ** 2)
             ties += np.clip(1 - r / 11, 0, 1) ** 0.6
             stain += np.exp(-(dx / 10.0) ** 2) * np.exp(-dy / 140.0) * (dy > 0)
@@ -169,27 +179,27 @@ def concrete():
 # ---------------------------------------------------------------- polished, used floor
 def floor():
     """Dark polished concrete floor, 1 m saw-cut joints, swirl scratches and traffic wear. Tile = 2 m."""
-    n = 1024
+    n = 1024 * S
     rng = np.random.default_rng(21)
     cloud = spectral(n, 22, beta=3.0, fmin=1, fmax=12)
     mottle = spectral(n, 23, beta=1.6, fmin=8, fmax=160)
     f1, _, cid = voronoi(n, 160, 24)
     chips = ((cid % 5) == 0) & (f1 < 0.28)
     chips_soft = blur(chips.astype(float), 0.7)
-    y, x = np.mgrid[0:n, 0:n]
+    y, x = np.mgrid[0:n, 0:n] / S
     jx = np.minimum(x % 512, 512 - x % 512); jy = np.minimum(y % 512, 512 - y % 512)
     joint = np.exp(-(np.minimum(jx, jy) / 1.6) ** 2)
     segs = []
     for _ in range(900):
         x0, y0 = rng.uniform(0, n, 2)
         ang = rng.uniform(0, np.pi) if rng.random() < 0.6 else rng.normal(0.35, 0.25)
-        ln = rng.exponential(45) + 8
+        ln = (rng.exponential(45) + 8) * S
         segs.append((x0, y0, x0 + np.cos(ang) * ln, y0 + np.sin(ang) * ln, rng.uniform(0.25, 1.0)))
     scratches = wrapped_lines(n, segs, 1.0)
     # Curved polishing swirls.
     swirl = []
     for _ in range(60):
-        cx, cy = rng.uniform(0, n, 2); r = rng.uniform(40, 160); a0 = rng.uniform(0, 2 * np.pi)
+        cx, cy = rng.uniform(0, n, 2); r = rng.uniform(40, 160) * S; a0 = rng.uniform(0, 2 * np.pi)
         pts = [(cx + r * np.cos(a0 + t), cy + r * np.sin(a0 + t)) for t in np.linspace(0, rng.uniform(0.4, 1.4), 18)]
         for p, q in zip(pts, pts[1:]):
             swirl.append((p[0], p[1], q[0], q[1], 0.35))
@@ -207,7 +217,7 @@ def floor():
 # ---------------------------------------------------------------- brushed steel
 def steel():
     """Brushed stainless steel; brushing runs along U. Tile = 1 m."""
-    n = 512
+    n = 512 * S
     rng = np.random.default_rng(31)
     brushed = blur(rng.standard_normal((n, n)), 60, 0.6)
     brushed = (brushed - brushed.mean()) / brushed.std()
@@ -215,7 +225,7 @@ def steel():
     smudge = spectral(n, 32, beta=3.0, fmin=1, fmax=10)
     segs = []
     for _ in range(140):
-        x0, y0 = rng.uniform(0, n, 2); ang = rng.uniform(0, np.pi); ln = rng.exponential(25) + 4
+        x0, y0 = rng.uniform(0, n, 2); ang = rng.uniform(0, np.pi); ln = (rng.exponential(25) + 4) * S
         segs.append((x0, y0, x0 + np.cos(ang) * ln, y0 + np.sin(ang) * ln, rng.uniform(0.3, 1)))
     scratches = wrapped_lines(n, segs, 1.0)
     height = 0.35 * brushed + 0.25 * brushed2 - 0.6 * scratches
@@ -228,14 +238,14 @@ def steel():
 
 def darksteel():
     """Blackened, satin powder-coated structural steel with mill-scale mottling. Tile = 1 m."""
-    n = 512
+    n = 512 * S
     rng = np.random.default_rng(41)
     scale = spectral(n, 42, beta=2.6, fmin=2, fmax=40)
     orange = spectral(n, 43, beta=1.0, fmin=40, fmax=220)  # powder-coat orange peel
     brushed = blur(rng.standard_normal((n, n)), 30, 0.7); brushed /= brushed.std()
     segs = []
     for _ in range(90):
-        x0, y0 = rng.uniform(0, n, 2); ang = rng.uniform(0, np.pi); ln = rng.exponential(18) + 3
+        x0, y0 = rng.uniform(0, n, 2); ang = rng.uniform(0, np.pi); ln = (rng.exponential(18) + 3) * S
         segs.append((x0, y0, x0 + np.cos(ang) * ln, y0 + np.sin(ang) * ln, rng.uniform(0.3, 1)))
     scratches = wrapped_lines(n, segs, 1.0)
     height = 0.35 * orange - 0.5 * scratches + 0.1 * brushed
@@ -250,7 +260,7 @@ def darksteel():
 # ---------------------------------------------------------------- leather
 def leather():
     """Bordeaux pebble-grain upholstery leather. Tile = 0.6 m."""
-    n = 512
+    n = 512 * S
     f1, f2, cid = voronoi(n, 72, 51)
     edge = f2 - f1
     pebble = np.clip(edge / 0.35, 0, 1) ** 0.6
@@ -270,7 +280,7 @@ def leather():
 # ---------------------------------------------------------------- perforated grille (with holes)
 def grille():
     """Hex-perforated steel sheet with real transparent holes (alpha mask). Tile = 0.4 m."""
-    n = 512
+    n = 512 * S
     y, x = np.mgrid[0:n, 0:n].astype(float)
     cols, rows = 16, 18  # rows even and close to cols*2/sqrt(3) for a near-regular hex lattice
     pitch_x, pitch_y = n / cols, n / rows
@@ -283,8 +293,8 @@ def grille():
             cx = (c + 0.5 + shift) * pitch_x; cy = (r + 0.5) * pitch_y
             best = np.minimum(best, np.sqrt((x - cx) ** 2 + (y - cy) ** 2))
     radius = pitch_x * 0.31
-    alpha = np.clip((best - radius) / 1.2 + 0.5, 0, 1)
-    bevel = np.clip((best - radius) / 4.0, 0, 1)
+    alpha = np.clip((best - radius) / (1.2 * S) + 0.5, 0, 1)
+    bevel = np.clip((best - radius) / (4.0 * S), 0, 1)
     brushed = blur(np.random.default_rng(61).standard_normal((n, n)), 20, 0.5); brushed /= brushed.std()
     height = 2.0 * bevel ** 0.5 + 0.08 * brushed
     variation = 0.85 + 0.15 * bevel + 0.03 * brushed
@@ -296,7 +306,7 @@ def grille():
 
 def treadplate():
     """Aluminium-look diamond tread plate for stair treads and stage edges. Tile = 0.5 m."""
-    n = 512
+    n = 512 * S
     y, x = np.mgrid[0:n, 0:n].astype(float)
     cell = n / 10
     u = (x % cell) / cell - 0.5; v = (y % cell) / cell - 0.5
@@ -324,7 +334,7 @@ def backlight():
     The emissive map is greyscale; the colour is chosen in the material, so the
     same texture serves cyan, magenta and warm red panels.
     """
-    n = 512
+    n = 512 * S
     f1, f2, _ = voronoi(n, 24, 81)
     glow = 0.70 + 0.30 * np.clip((f2 - f1) / 0.5, 0, 1)
     hot = np.exp(-(f1 / 0.35) ** 2) * 0.25

@@ -5,6 +5,7 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 use bevy::prelude::*;
 use crate::look::{tile, Surfaces};
+use crate::lod;
 use crate::navigation::layout::*;
 use crate::shapes::{self, arc_frames, path_frames, rounded_rect, sweep, tube, Frame, MeshData, ProfilePoint};
 
@@ -26,6 +27,18 @@ impl Ctx<'_, '_, '_> {
         self.c.spawn((Mesh3d(self.meshes.add(m.build())), MeshMaterial3d(mat.clone()), t));
     }
     fn mesh(&mut self, m: MeshData) -> Handle<Mesh> { self.meshes.add(m.build()) }
+    /// Two levels of detail sharing one origin; `aabb` for meshes in world coordinates.
+    fn put_lod(&mut self, hi: MeshData, lo: MeshData, mat: &Handle<StandardMaterial>, t: Transform, switch: f32, aabb: bool) {
+        let (hi, lo) = (self.meshes.add(hi.build()), self.meshes.add(lo.build()));
+        self.spawn_lod(&hi, &lo, mat, t, switch, aabb);
+    }
+    fn spawn_lod(&mut self, hi: &Handle<Mesh>, lo: &Handle<Mesh>, mat: &Handle<StandardMaterial>, t: Transform, switch: f32, aabb: bool) {
+        self.c.spawn((Mesh3d(hi.clone()), MeshMaterial3d(mat.clone()), t, lod::near(switch, aabb)));
+        self.c.spawn((Mesh3d(lo.clone()), MeshMaterial3d(mat.clone()), t, lod::far(switch, aabb)));
+    }
+    fn mesh_pair(&mut self, f: impl Fn(usize) -> MeshData, hi: usize, lo: usize) -> (Handle<Mesh>, Handle<Mesh>) {
+        (self.mesh(f(hi)), self.mesh(f(lo)))
+    }
 }
 
 fn offset(frames: &[Frame], lateral: f32, up: f32) -> Vec<Vec3> {
@@ -207,7 +220,8 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
     for k in 0..3 {
         let b0 = a0 + (a1 - a0) * k as f32 / 3.0 + 0.008;
         let b1 = a0 + (a1 - a0) * (k + 1) as f32 / 3.0 - 0.008;
-        cx.put(sweep(&shifted(rounded_rect(0.62, 0.19, 0.05, 5), 0.0, 0.2), &arc(b0, b1, 24), true, true, uv(tile::LEATHER)), &s.leather);
+        let seat = |seg: usize, steps: usize| sweep(&shifted(rounded_rect(0.62, 0.19, 0.05, seg), 0.0, 0.2), &arc(b0, b1, steps), true, true, uv(tile::LEATHER));
+        cx.put_lod(seat(8, 40), seat(2, 12), &s.leather, Transform::IDENTITY, lod::LARGE, true);
     }
     // Outer shell with a warm light line along its top edge.
     cx.put(sweep(&shifted(rounded_rect(0.07, 0.8, 0.03, 3), 0.37, 0.14), &arc(a0, a1, 64), true, true, uv(tile::DARKSTEEL)), &s.darksteel);
@@ -222,7 +236,8 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
     for k in 0..channels {
         let b0 = a0 + (a1 - a0) * k as f32 / channels as f32 + gap;
         let b1 = a0 + (a1 - a0) * (k + 1) as f32 / channels as f32 - gap;
-        cx.put(sweep(&shifted(rounded_rect(0.14, 0.47, 0.06, 5), 0.27, 0.4), &arc(b0, b1, 4), true, true, uv(tile::LEATHER)), &s.leather);
+        let channel = |seg: usize, steps: usize| sweep(&shifted(rounded_rect(0.14, 0.47, 0.06, seg), 0.27, 0.4), &arc(b0, b1, steps), true, true, uv(tile::LEATHER));
+        cx.put_lod(channel(8, 6), channel(2, 2), &s.leather, Transform::IDENTITY, lod::LARGE, true);
     }
     // Slab arms with a leather top pad at both ends.
     for (a, dir) in [(a0, 1.0f32), (a1, -1.0)] {
@@ -235,10 +250,11 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
     // Low drum coffee table: dark steel drum, polished stone-like top, glow ring at the foot.
     let top = LOUNGE_TABLE_TOP;
     let tr = LOUNGE_TABLE_RADIUS;
-    cx.put_at(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.27, 0.0), Vec2::new(0.28, 0.01), Vec2::new(0.28, top - 0.07), Vec2::new(0.0, top - 0.07)], 48, uv(tile::DARKSTEEL)),
-        &s.darksteel, Transform::from_translation(centre));
-    cx.put_at(shapes::lathe(&[Vec2::new(0.0, top - 0.07), Vec2::new(tr - 0.03, top - 0.07), Vec2::new(tr, top - 0.05), Vec2::new(tr, top - 0.02),
-        Vec2::new(tr - 0.02, top), Vec2::new(0.0, top)], 64, uv(tile::FLOOR)), &s.floor, Transform::from_translation(centre));
+    let drum = |n: usize| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.27, 0.0), Vec2::new(0.28, 0.01), Vec2::new(0.28, top - 0.07), Vec2::new(0.0, top - 0.07)], n, uv(tile::DARKSTEEL));
+    cx.put_lod(drum(96), drum(20), &s.darksteel, Transform::from_translation(centre), lod::MEDIUM, false);
+    let slab = |n: usize| shapes::lathe(&[Vec2::new(0.0, top - 0.07), Vec2::new(tr - 0.03, top - 0.07), Vec2::new(tr, top - 0.05), Vec2::new(tr, top - 0.02),
+        Vec2::new(tr - 0.02, top), Vec2::new(0.0, top)], n, uv(tile::FLOOR));
+    cx.put_lod(slab(128), slab(24), &s.floor, Transform::from_translation(centre), lod::MEDIUM, false);
     cx.put(tube(&ring_points(centre + Vec3::Y * 0.02, 0.3, 48), 0.008, 6, 1.0), &neon.warm);
     // Glass lantern on the table.
     cx.put_at(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.06, 0.0), Vec2::new(0.06, 0.015), Vec2::new(0.0, 0.015)], 24, uv(tile::DARKSTEEL)),
@@ -291,8 +307,8 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
     cx.put_at(shapes::rounded_box(Vec3::new(0.6, 0.95, 3.6), 0.04, 3, uv(tile::DARKSTEEL)), &s.darksteel, Transform::from_xyz(wall_x - 0.3, 0.475, c.z));
     cx.put_at(shapes::rounded_box(Vec3::new(0.64, 0.04, 3.64), 0.015, 2, uv(tile::FLOOR)), &s.floor, Transform::from_xyz(wall_x - 0.32, 0.97, c.z));
     cx.put(sweep(&panel_facing(0.0, 1.05, 2.75, Vec2::X), &path_frames(&[Vec3::new(wall_x - 0.02, 0.0, c.z - 1.7), Vec3::new(wall_x - 0.02, 0.0, c.z + 1.7)]), false, false, uv(tile::BACKLIGHT)), &s.backlight_amber);
-    let bottle = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.034, 0.0), Vec2::new(0.037, 0.012), Vec2::new(0.037, 0.19), Vec2::new(0.03, 0.225),
-        Vec2::new(0.014, 0.26), Vec2::new(0.012, 0.31), Vec2::new(0.015, 0.318), Vec2::new(0.0, 0.322)], 20, 1.0));
+    let (bottle, bottle_lo) = cx.mesh_pair(|n| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.034, 0.0), Vec2::new(0.037, 0.012), Vec2::new(0.037, 0.19), Vec2::new(0.03, 0.225),
+        Vec2::new(0.014, 0.26), Vec2::new(0.012, 0.31), Vec2::new(0.015, 0.318), Vec2::new(0.0, 0.322)], n, 1.0), 36, 8);
     let mut k = 0;
     for &y in &[1.28, 1.74, 2.2] {
         cx.put_at(shapes::rounded_box(Vec3::new(0.32, 0.03, 3.3), 0.012, 2, uv(tile::STEEL)), &s.steel, Transform::from_xyz(wall_x - 0.2, y, c.z));
@@ -300,29 +316,30 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
         for i in 0..14 {
             let z = c.z - 1.5 + i as f32 * 0.23;
             let scale = 0.85 + 0.3 * (((i * 7 + k * 3) % 5) as f32 / 4.0);
-            cx.c.spawn((Mesh3d(bottle.clone()), MeshMaterial3d(glass[(i + k) % 5].clone()),
-                Transform::from_xyz(wall_x - 0.2 + if i % 2 == 0 { 0.05 } else { -0.04 }, y + 0.015, z).with_scale(Vec3::new(1.0, scale, 1.0))));
+            cx.spawn_lod(&bottle, &bottle_lo, &glass[(i + k) % 5],
+                Transform::from_xyz(wall_x - 0.2 + if i % 2 == 0 { 0.05 } else { -0.04 }, y + 0.015, z).with_scale(Vec3::new(1.0, scale, 1.0)), lod::SMALL, false);
         }
         k += 1;
     }
     // Contemporary bar stools: trumpet base, slim column, dark seat shell,
     // leather cushion and a low curved backrest facing away from the counter.
-    let base = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.2, 0.0), Vec2::new(0.205, 0.01), Vec2::new(0.19, 0.022), Vec2::new(0.06, 0.05),
-        Vec2::new(0.024, 0.13), Vec2::new(0.022, 0.62), Vec2::new(0.07, 0.64), Vec2::new(0.0, 0.645)], 32, uv(tile::DARKSTEEL)));
-    let shell = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.19, 0.0), Vec2::new(0.205, 0.015), Vec2::new(0.205, 0.045), Vec2::new(0.0, 0.045)], 40, uv(tile::DARKSTEEL)));
-    let cushion = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.185, 0.0), Vec2::new(0.195, 0.02), Vec2::new(0.19, 0.05),
-        Vec2::new(0.16, 0.068), Vec2::new(0.0, 0.072)], 40, uv(tile::LEATHER)));
-    let backrest = cx.mesh(sweep(&rounded_rect(0.04, 0.17, 0.018, 4), &arc_frames(Vec3::ZERO, 0.185, -1.1, 1.1, 20), true, true, uv(tile::LEATHER)));
-    let footring = cx.mesh(tube(&ring_points(Vec3::ZERO, 0.17, 40), 0.01, 8, uv(tile::DARKSTEEL)));
+    let base = cx.mesh_pair(|n| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.2, 0.0), Vec2::new(0.205, 0.01), Vec2::new(0.19, 0.022), Vec2::new(0.06, 0.05),
+        Vec2::new(0.024, 0.13), Vec2::new(0.022, 0.62), Vec2::new(0.07, 0.64), Vec2::new(0.0, 0.645)], n, uv(tile::DARKSTEEL)), 64, 12);
+    let shell = cx.mesh_pair(|n| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.19, 0.0), Vec2::new(0.205, 0.015), Vec2::new(0.205, 0.045), Vec2::new(0.0, 0.045)], n, uv(tile::DARKSTEEL)), 64, 14);
+    let cushion = cx.mesh_pair(|n| shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.185, 0.0), Vec2::new(0.195, 0.02), Vec2::new(0.19, 0.05),
+        Vec2::new(0.16, 0.068), Vec2::new(0.0, 0.072)], n, uv(tile::LEATHER)), 64, 14);
+    let backrest = cx.mesh_pair(|n| sweep(&rounded_rect(0.04, 0.17, 0.018, n / 8), &arc_frames(Vec3::ZERO, 0.185, -1.1, 1.1, n), true, true, uv(tile::LEATHER)), 40, 10);
+    let footring = cx.mesh_pair(|n| tube(&ring_points(Vec3::ZERO, 0.17, n), 0.01, n / 5, uv(tile::DARKSTEEL)), 64, 20);
     let spoke = cx.mesh(tube(&[Vec3::new(0.02, 0.0, 0.0), Vec3::new(0.165, 0.0, 0.0)], 0.008, 6, 1.0));
     for &a in &BAR_STOOL_ANGLES {
         let p = c + Vec3::new(a.cos(), 0.0, a.sin()) * (r + 0.48);
         let facing = Quat::from_rotation_y(-a);
-        cx.c.spawn((Mesh3d(base.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_translation(p)));
-        cx.c.spawn((Mesh3d(shell.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_translation(p + Vec3::Y * 0.64)));
-        cx.c.spawn((Mesh3d(cushion.clone()), MeshMaterial3d(s.leather.clone()), Transform::from_translation(p + Vec3::Y * 0.685)));
-        cx.c.spawn((Mesh3d(backrest.clone()), MeshMaterial3d(s.leather.clone()), Transform::from_translation(p + Vec3::Y * 0.72).with_rotation(facing)));
-        cx.c.spawn((Mesh3d(footring.clone()), MeshMaterial3d(s.steel.clone()), Transform::from_translation(p + Vec3::Y * 0.3)));
+        let m = lod::MEDIUM;
+        cx.spawn_lod(&base.0, &base.1, &s.darksteel, Transform::from_translation(p), m, false);
+        cx.spawn_lod(&shell.0, &shell.1, &s.darksteel, Transform::from_translation(p + Vec3::Y * 0.64), m, false);
+        cx.spawn_lod(&cushion.0, &cushion.1, &s.leather, Transform::from_translation(p + Vec3::Y * 0.685), m, false);
+        cx.spawn_lod(&backrest.0, &backrest.1, &s.leather, Transform::from_translation(p + Vec3::Y * 0.72).with_rotation(facing), m, false);
+        cx.spawn_lod(&footring.0, &footring.1, &s.steel, Transform::from_translation(p + Vec3::Y * 0.3), m, false);
         for k in 0..3 {
             cx.c.spawn((Mesh3d(spoke.clone()), MeshMaterial3d(s.steel.clone()),
                 Transform::from_translation(p + Vec3::Y * 0.3).with_rotation(Quat::from_rotation_y(TAU * k as f32 / 3.0 - a))));
@@ -417,14 +434,16 @@ pub fn moving_head_positions() -> Vec<Vec3> {
 }
 
 /// Mesh and yoke for a moving head (spawn as a child of the light so it turns with the beam).
-pub fn moving_head_meshes(meshes: &mut Assets<Mesh>, s: &Surfaces, lens: Handle<StandardMaterial>) -> Vec<(Handle<Mesh>, Handle<StandardMaterial>, Transform)> {
-    let body = shapes::lathe(&[Vec2::new(0.0, -0.18), Vec2::new(0.1, -0.18), Vec2::new(0.13, -0.1), Vec2::new(0.14, 0.12), Vec2::new(0.12, 0.17), Vec2::new(0.0, 0.17)], 24, uv(tile::DARKSTEEL)).build();
-    let lens_mesh = shapes::annulus(Vec3::ZERO, 0.0, 0.11, 0.0, TAU, 20, 1.0).build();
+pub fn moving_head_meshes(meshes: &mut Assets<Mesh>, s: &Surfaces, lens: Handle<StandardMaterial>)
+    -> Vec<(Handle<Mesh>, Handle<StandardMaterial>, Transform, Option<bevy::camera::visibility::VisibilityRange>)> {
+    let body = |n: usize| shapes::lathe(&[Vec2::new(0.0, -0.18), Vec2::new(0.1, -0.18), Vec2::new(0.13, -0.1), Vec2::new(0.14, 0.12), Vec2::new(0.12, 0.17), Vec2::new(0.0, 0.17)], n, uv(tile::DARKSTEEL)).build();
+    let lens_mesh = shapes::annulus(Vec3::ZERO, 0.0, 0.11, 0.0, TAU, 32, 1.0).build();
     // Lathe axis Y -> beam axis -Z.
     let to_beam = Quat::from_rotation_x(-FRAC_PI_2);
     vec![
-        (meshes.add(body), s.darksteel.clone(), Transform::from_rotation(to_beam)),
-        (meshes.add(lens_mesh), lens, Transform::from_xyz(0.0, 0.0, -0.172).with_rotation(Quat::from_rotation_x(FRAC_PI_2))),
+        (meshes.add(body(48)), s.darksteel.clone(), Transform::from_rotation(to_beam), Some(lod::near(lod::MEDIUM, false))),
+        (meshes.add(body(12)), s.darksteel.clone(), Transform::from_rotation(to_beam), Some(lod::far(lod::MEDIUM, false))),
+        (meshes.add(lens_mesh), lens, Transform::from_xyz(0.0, 0.0, -0.172).with_rotation(Quat::from_rotation_x(FRAC_PI_2)), None),
     ]
 }
 

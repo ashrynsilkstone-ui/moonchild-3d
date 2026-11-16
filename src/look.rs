@@ -89,12 +89,15 @@ impl Surfaces {
         });
         Self {
             concrete: materials.add(StandardMaterial { base_color: Color::srgb(1.12, 1.10, 1.08), ..pbr_from(&concrete) }),
-            floor: materials.add(pbr_from(&floor)),
-            // The circular dance floor is darker and more polished than the surrounding floor.
-            dance_floor: materials.add(StandardMaterial { base_color: Color::srgb(0.55, 0.55, 0.62), perceptual_roughness: 0.55, ..pbr_from(&floor) }),
+            // Sealed concrete: a thin clear coat over the worn texture roughness.
+            floor: materials.add(StandardMaterial { clearcoat: 0.2, clearcoat_perceptual_roughness: 0.3, ..pbr_from(&floor) }),
+            // The circular dance floor is darker and lacquered to a high gloss.
+            dance_floor: materials.add(StandardMaterial { base_color: Color::srgb(0.55, 0.55, 0.62), perceptual_roughness: 0.55,
+                clearcoat: 0.45, clearcoat_perceptual_roughness: 0.14, ..pbr_from(&floor) }),
             steel: materials.add(pbr_from(&steel)),
             darksteel: materials.add(pbr_from(&darksteel)),
-            leather: materials.add(pbr_from(&leather)),
+            // Upholstery leather with a soft finish coat.
+            leather: materials.add(StandardMaterial { clearcoat: 0.25, clearcoat_perceptual_roughness: 0.38, ..pbr_from(&leather) }),
             grille: materials.add(StandardMaterial {
                 alpha_mode: AlphaMode::Mask(0.5), double_sided: true, cull_mode: None, ..pbr_from(&grille)
             }),
@@ -181,7 +184,7 @@ fn f16_bits(v: f32) -> u16 {
 /// lighting, so glossy floors and steel pick up plausible coloured reflections.
 /// It is not a live reflection of the actual scene.
 fn environment_cubemap(images: &mut Assets<Image>) -> Handle<Image> {
-    const N: usize = 128;
+    const N: usize = 256;
     let mut data = Vec::with_capacity(N * N * 6 * 8);
     let face_dir = |face: usize, u: f32, v: f32| -> Vec3 {
         match face {
