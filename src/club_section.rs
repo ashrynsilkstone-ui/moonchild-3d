@@ -241,6 +241,9 @@ fn bend(mut m: MeshData, centre: Vec3, r: f32, a_mid: f32) -> MeshData {
         *p = (centre + dir * (r + z) + Vec3::Y * y).to_array();
         *n = (tan * n[0] + Vec3::Y * n[1] + dir * n[2]).normalize_or(Vec3::Y).to_array();
     }
+    // (tangent, up, radial) is left-handed: bending reverses triangle winding.
+    // Restore outward-facing triangles so back-face culling cannot hide the upholstery.
+    for triangle in m.indices.chunks_exact_mut(3) { triangle.swap(1, 2); }
     m
 }
 /// Rotate a mesh about its local X axis (tilt a back cushion).
@@ -614,6 +617,26 @@ fn speakers(cx: &mut Ctx, s: &Surfaces, neon: &Neon) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bent_upholstery_faces_outward() {
+        for (half, round, puff) in [(Vec3::new(0.3, 0.085, 0.3), 0.22, 0.5),
+            (Vec3::new(0.2, 0.2, 0.065), 0.15, 0.45)] {
+            let m = bend(shapes::cushion(half, round, puff, 56, 1.0), Vec3::new(6.0, 0.0, 8.15), 1.2, 1.0);
+            let mut checked = 0;
+            for t in m.indices.chunks_exact(3) {
+                let a = Vec3::from(m.positions[t[0] as usize]);
+                let b = Vec3::from(m.positions[t[1] as usize]);
+                let c = Vec3::from(m.positions[t[2] as usize]);
+                let face = (b - a).cross(c - a);
+                let normal = Vec3::from(m.normals[t[0] as usize]);
+                if face.length_squared() > 1.0e-12 {
+                    assert!(face.dot(normal) > -1.0e-6, "bent cushion face points inward");
+                    checked += 1;
+                }
+            }
+            assert!(checked > 100);
+        }
+    }
     #[test]
     fn floor_leds_sit_above_dance_floor() {
         assert!(DANCE_TOP + FLOOR_LED_LIFT > DANCE_TOP + 0.001);

@@ -347,6 +347,9 @@ pub fn cushion(half: Vec3, e_round: f32, e_puff: f32, res: usize, uv_scale: f32)
     for i in 0..=rings {
         let u = -std::f32::consts::FRAC_PI_2 + std::f32::consts::PI * i as f32 / rings as f32;
         let (su, cu) = u.sin_cos();
+        // Floating-point cos(±pi/2) can be slightly negative. Fractional
+        // superquadric powers otherwise turn the pole rings inside out.
+        let cu = cu.max(0.0);
         for j in 0..=res {
             let v = -std::f32::consts::PI + TAU * j as f32 / res as f32;
             let (sv, cv) = v.sin_cos();
@@ -511,6 +514,17 @@ mod tests {
             let face = (b - a).cross(c - a);
             face.length() < 1e-7 || face.dot(n) > -1e-6
         })
+    }
+    #[test]
+    fn cushion_poles_collapse_without_inverted_rings() {
+        let res = 56;
+        let m = cushion(Vec3::new(0.3, 0.085, 0.3), 0.22, 0.5, res, 1.0);
+        for row in [0, res / 2] {
+            for j in 0..=res {
+                let p = Vec3::from(m.positions[row * (res + 1) + j]);
+                assert!(p.is_finite() && p.x.abs() < 1e-6 && p.z.abs() < 1e-6);
+            }
+        }
     }
     #[test]
     fn builders_wind_outward() {

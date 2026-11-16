@@ -57,6 +57,13 @@ pub struct Surfaces {
     pub bottle_label: Handle<StandardMaterial>,
 }
 
+/// Load the original stage graphic and include it in the mipmap queue.
+pub fn stage_screen(server: &AssetServer, queue: &mut MipQueue) -> Handle<Image> {
+    let image: Handle<Image> = server.load("textures/moonchild/stage_screen.png");
+    queue.0.push((image.id(), false));
+    image
+}
+
 struct Maps { base: Handle<Image>, normal: Handle<Image>, orm: Handle<Image> }
 
 fn load_maps(server: &AssetServer, queue: &mut MipQueue, name: &str) -> Maps {

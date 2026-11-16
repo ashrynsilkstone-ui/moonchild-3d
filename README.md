@@ -80,7 +80,7 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 **Bühne und DJ**
 - Geschwungenes DJ-Pult mit hinterleuchteter Lochblechfront und den DJ-Geräten. Bedienelemente und Bildschirme sind nur optisch, keine funktionierende Musiksteuerung.
 - Lautsprecher, abgerundeter Bühnenkörper und Riffelblechbelag, Stufen an der Seite, Bühnenfront mit acht hinterleuchteten Lochblechfeldern. Seitliche Eichenrillen und Messingleisten ergänzen den bestehenden Bühnenkörper.
-- LED-Wand aus 120 einzeln animierten, abgerundeten Kacheln im Rahmen.
+- Bühnenbildschirm mit eigener 2048×1024-Emissionsgrafik und 60 einzeln animierten Pegelleuchten im Rahmen.
 - Traversenportal aus zwei Türmen und Quertraverse mit fünf LED-Leisten und vier weiteren Moving Heads.
 
 **Halle** (`src/hall.rs`)
@@ -99,7 +99,7 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
   - **5 Fächer:** Strahlenlinie, die auffächert und von vorn nach hinten schwenkt.
   - **6 Kegel:** alle Strahlen auf einem rotierenden Kreis, der sich weitet und zusammenzieht.
   - **7 Chase:** feste Positionen, die Helligkeit springt im BPM-Takt von Kopf zu Kopf.
-  - **8 Lounge:** langsam schwenkende, spiegelbildliche Lichtkegel in warmen und zurückhaltenden Farbtönen. Helligkeit der Moving Heads und Punktlichter bleibt konstant, ohne taktbedingtes Blitzen; die LED-Wand bewegt sich langsam.
+  - **8 Lounge:** langsam schwenkende, spiegelbildliche Lichtkegel in warmen und zurückhaltenden Farbtönen. Helligkeit der Moving Heads und Punktlichter bleibt konstant, ohne taktbedingtes Blitzen; die Pegelleuchten an der LED-Wand ändern sich langsam.
 - **Lichtstrahlen:** In Hoch und Ultra entsteht echtes volumetrisches Streulicht in einem leichten Club-Dunst (Bevy `FogVolume` + `VolumetricFog`). Die Moving Heads werfen dann Schatten, weil Bevy nur schattenwerfende Lichter in den Nebel streut. Bühne, Traverse und Galerie schneiden die Strahlen deshalb sichtbar an. In Mittel gibt es stattdessen günstige additive Lichtkegel ohne Abschattung.
 - **Schatten:** Die warmen Grundlicht-Spots werfen Schattenkarten, dazu kommen Contact Shadows. Die pulsierenden Punktlichter werfen nie Schatten.
 
@@ -142,6 +142,7 @@ Die Nahstufe ist dicht tesselliert, Sofakissen haben zum Beispiel rund 3000 Drei
 | `terrazzo` | 2048² | 2 m | polierter Anthrazit-Terrazzo mit Marmor-, Messing- und Weinrot-Splittern (Hallen- und Galerieboden) |
 | `marble` | 2048² | 2 m | schwarzer Marmor im Nero-Marquina-Stil mit weißen Adern (Tanzfläche, Theken, Tische) |
 | `concrete` | 2048² | 2 m | dunkler Schalungsbeton mit Tafelfugen und Ankerlöchern (Wände, Decke) |
+| `stage_screen` | 2048×1024 | Einzelmotiv | eigene Emissionsgrafik auf dem Bühnenbildschirm |
 | `bottle_label` | 1024×512 | Einzelmotiv | eigene Moonchild-Etiketten auf den Barflaschen |
 | `foliage` | 1024² | Einzelblatt | Blatt mit Adern: Base-Color-, Normal- und ORM-Map (Tischpflanzen) |
 | `velvet` | 1024² | 0,5 m | weinroter Samt mit gedrücktem Flor |
@@ -205,13 +206,14 @@ Das ist eine vereinfachte 2,5D-Kollision, keine Physik-Engine und keine Mesh-Kol
 python3 tools/generate_textures.py
 python3 tools/generate_foliage.py
 python3 tools/generate_bottle_label.py
+python3 tools/generate_stage_screen.py
 ```
 
 ```bash
 python3 tools/generate_textures.py velvet marble
 ```
 
-- Ohne Argument erzeugt `generate_textures.py` seine ausgelieferten Sets, mit Namen nur die genannten; `generate_foliage.py` erzeugt die Blatttexturen und `generate_bottle_label.py` die Barflaschen-Etiketten.
+- Ohne Argument erzeugt `generate_textures.py` seine ausgelieferten Sets, mit Namen nur die genannten; `generate_foliage.py` erzeugt die Blatttexturen `generate_bottle_label.py` die Barflaschen-Etiketten und `generate_stage_screen.py` das Bühnenmotiv.
 - `MOONCHILD_TEX_SCALE` (Standard 2) skaliert die Auflösung, alle pixelbasierten Größen skalieren mit. Mit `1` entsteht die halbe Auflösung bei gleichem Aussehen.
 - Die ausgemusterten Sets `floor` und `leather` werden nicht mehr ausgeliefert, lassen sich aber per Name noch erzeugen.
 
@@ -294,6 +296,14 @@ Prüfung dieses Detailausbaus: Auf Ubuntu liefen `cargo check --locked`, `cargo 
 
 ## Ausbau von Halle, Bühne, Bar und Decke
 
-Die Hallenpaneele und tragenden Säulen haben feinere Rundungen und gemeinsam verwendete Opal-Wandleuchten. Die animierten Bühnenmodule liegen mit schmalen Fugen dichter zusammen; das gebogene DJ-Pult hat zusätzliche Messingstreben und eine feinere Kontur. Die Barflaschen tragen ein eigenes Moonchild-Etikett und Verschlüsse. Der Deckenring, die verkleideten radialen Lichtleisten, Lüftungsrohre und Lautsprechergehäuse wurden weiter ausgearbeitet. Bestehende Bewegung und Kollisionen bleiben in ihrer bisherigen Form erhalten; die neuen Details bleiben innerhalb beziehungsweise direkt an den bestehenden Einrichtungsgrenzen.
+Die Hallenpaneele und tragenden Säulen haben feinere Rundungen und gemeinsam verwendete Opal-Wandleuchten. Die damaligen animierten Bühnenmodule lagen mit schmalen Fugen dichter zusammen; das gebogene DJ-Pult hat zusätzliche Messingstreben und eine feinere Kontur. Die Barflaschen tragen ein eigenes Moonchild-Etikett und Verschlüsse. Der Deckenring, die verkleideten radialen Lichtleisten, Lüftungsrohre und Lautsprechergehäuse wurden weiter ausgearbeitet. Bestehende Bewegung und Kollisionen bleiben in ihrer bisherigen Form erhalten; die neuen Details bleiben innerhalb beziehungsweise direkt an den bestehenden Einrichtungsgrenzen.
 
-Der Prüfzweig für diesen Ausbau bestand auf Ubuntu `cargo check --locked`, `cargo test --locked` (19 Tests) und `cargo build --locked`. Ein Lauf mit Mesa llvmpipe/Vulkan in Mittel bei 960×600 erzeugte fünf In-Game-Ansichten von Halle, Bar, Deckenring, DJ-Geräten und Bühnenrückwand. Die Bilder liegen als `32_*.jpg` bis `36_*.jpg` unter `docs/screenshots/`. Der Lauf prüft Funktion und eine Softwareansicht, nicht die Leistung oder das Erscheinungsbild auf der RX 9070 XT. Die LED-Wand bleibt eine abstrakte Animation; Fotorealismus oder Unreal-Engine-5-Grafik sind nicht nachgewiesen. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43891455775).
+Der Prüfzweig für diesen Ausbau bestand auf Ubuntu `cargo check --locked`, `cargo test --locked` (19 Tests) und `cargo build --locked`. Ein Lauf mit Mesa llvmpipe/Vulkan in Mittel bei 960×600 erzeugte fünf In-Game-Ansichten von Halle, Bar, Deckenring, DJ-Geräten und Bühnenrückwand. Die Bilder liegen als `32_*.jpg` bis `36_*.jpg` unter `docs/screenshots/`. Der Lauf prüft Funktion und eine Softwareansicht, nicht die Leistung oder das Erscheinungsbild auf der RX 9070 XT. Die damalige LED-Wand war eine abstrakte Animation; Fotorealismus oder Unreal-Engine-5-Grafik sind nicht nachgewiesen. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43891455775).
+
+## Kissenkorrektur und Bühnenbildschirm
+
+Das Biegen der Sofakissen verändert die Händigkeit des lokalen Koordinatensystems. Deshalb werden beim Biegen die Dreiecke nun umgedreht: Ihre sichtbaren Seiten zeigen wieder nach außen und können durch Backface-Culling nicht mehr verschwinden. Regressionstests prüfen die Ausrichtung gebogener Sitz- und Dekokissen sowie die Polstellen der Kissenmeshes. Andere Transparenz- oder LOD-Effekte sind dadurch nicht grundsätzlich ausgeschlossen.
+
+Die grobe Bildschirm-Kachelmatrix wurde durch eine eigene 2048×1024-Emissionsgrafik und 60 kleine animierte Pegelleuchten ersetzt. Die Decken- und Showlichtprogramme sowie das warmweiße Grundlicht bleiben bestehen. Die Grafik ist eine eigene Illustration und kein Fotoscan; die Balken sind eine Showanimation und nicht audiosynchron.
+
+Prüfung dieses Stands: `cargo check --locked`, `cargo test --locked` (21 bestanden) und `cargo build --locked` liefen auf Ubuntu erfolgreich. Der Spielstand wurde mit Mesa llvmpipe/Vulkan in Mittel bei 960×600 gestartet. Aufnahmen der unteren und oberen Lounge sowie der Bühnenansicht liegen als `37_*.jpg` bis `39_*.jpg` unter `docs/screenshots/`. Im Vergleich mit der vorherigen Aufnahme sind die Sitzflächen sichtbar und die zuvor erkennbaren kleinen dreieckigen Flecken dort nicht mehr zu sehen. Der Softwarelauf belegt keine bestimmte Grafikqualität oder Bildrate auf der RX 9070 XT. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43897544059).
