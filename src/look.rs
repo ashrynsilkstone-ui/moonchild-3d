@@ -34,6 +34,11 @@ pub mod tile {
 
 #[derive(Resource, Default)]
 pub struct MipQueue(Vec<(AssetId<Image>, bool)>);
+impl MipQueue {
+    pub fn watch_image(&mut self, image: &Handle<Image>, normal: bool) {
+        self.0.push((image.id(), normal));
+    }
+}
 
 pub struct Surfaces {
     pub concrete: Handle<StandardMaterial>,

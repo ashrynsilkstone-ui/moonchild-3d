@@ -1,100 +1,152 @@
 #!/usr/bin/env python3
-"""Draw original Moonchild DJ equipment faceplates; Pillow is needed only to regenerate."""
+"""Original Moonchild media-player, mixer and jog-wheel PBR artwork (MIT).
+
+No manufacturer artwork or third-party image is included. Labels use the locally
+installed free DejaVu Sans font; the font file is not distributed with the game.
+"""
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import math, random
-P=Path(__file__).resolve().parents[1]/'assets/textures/dj'; P.mkdir(parents=True,exist_ok=True)
-rng=random.Random(84177)
-try:
-    ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 16)
-    def font(n): return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', n)
-except OSError:
-    def font(n): return ImageFont.load_default()
-# DejaVu is used only by the generator; the resulting painted labels are original content.
-DARK=(16,20,26); LINE=(82,91,103); WHITE=(199,209,215); CYAN=(45,201,217); BLUE=(60,144,228); RED=(223,71,112)
+import math
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
-def panel(w,h):
-    im=Image.new('RGB',(w,h),DARK); d=ImageDraw.Draw(im)
-    for y in range(h):
-        g=int(22+8*y/h+rng.randrange(-2,3)); d.line((0,y,w,y),fill=(g,g+4,g+9))
-    d.rounded_rectangle((12,12,w-12,h-12),radius=27,outline=(104,114,124),width=4)
-    d.rounded_rectangle((24,24,w-24,h-24),radius=20,outline=(5,7,10),width=6)
-    for x in (45,w-45):
-        for y in (45,h-45):
-            d.ellipse((x-9,y-9,x+9,y+9),fill=(104,109,111),outline=(2,2,3),width=3);d.line((x-4,y-4,x+4,y+4),fill=(22,23,25),width=2)
-    return im,d
+OUT = Path(__file__).resolve().parents[1] / 'assets/textures/dj'
+OUT.mkdir(parents=True, exist_ok=True)
+FONT = next((p for p in [Path('/usr/share/fonts/TTF/DejaVuSans.ttf'),
+                         Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')] if p.is_file()), None)
+if FONT is None:
+    raise SystemExit('DejaVu Sans fehlt: installiere das DejaVu-Schriftpaket.')
+WHITE = (180, 188, 194)
+CYAN = (42, 175, 193)
 
-def label(d,x,y,text,size=18,fill=WHITE): d.text((x,y),text,font=font(size),fill=fill)
-def button(d,x,y,w,h,text='',color=None):
-    d.rounded_rectangle((x,y,x+w,y+h),radius=7,fill=(5,7,10),outline=(94,103,108),width=3)
-    d.rounded_rectangle((x+5,y+5,x+w-5,y+h-8),radius=4,fill=(46,54,60),outline=(22,25,28),width=2)
-    if color: d.line((x+8,y+h-5,x+w-8,y+h-5),fill=color,width=4)
-    if text: label(d,x+8,y+8,text,15,(215,225,229))
-def knob(d,x,y,r,labeltext=''):
-    d.ellipse((x-r-3,y-r-3,x+r+3,y+r+3),fill=(3,4,7),outline=(87,95,100),width=3)
-    d.ellipse((x-r+4,y-r+4,x+r-4,y+r-4),fill=(53,59,64),outline=(124,130,134),width=2)
-    d.line((x,y-r+8,x,y-r//4),fill=(224,229,228),width=4)
-    if labeltext: label(d,x-r,y+r+6,labeltext,13,(168,177,182))
 
-def deck():
-    w,h=1536,900; im,d=panel(w,h)
-    label(d,78,52,'MOONCHILD',28,(214,222,226)); label(d,79,88,'PRO PLAYER  /  MC-01',14,(142,156,166))
-    label(d,1060,64,'DIGITAL MEDIA PLAYER',16,(147,161,166))
-    d.rounded_rectangle((125,115,1035,290),radius=13,fill=(4,8,13),outline=(72,83,89),width=5)
-    d.rectangle((145,135,1015,270),fill=(6,20,29))
-    label(d,160,143,'MOONCHILD     TRACK 01',19,(124,213,222));label(d,160,173,'03:24.08',28,(219,235,239));label(d,736,148,'128.0 BPM',20,(193,223,233))
-    for x in range(160,995,4):
-        hh=5+int(30*abs(math.sin(x*.032)*math.sin(x*.009)))+rng.randrange(0,5)
-        d.line((x,239-hh,x,239+hh),fill=(31,153+int(hh),180+int(hh/2)),width=2)
-    cx,cy,r=510,550,230
-    for rad,col in [(r+18,(4,5,7)),(r+8,(91,98,103)),(r,(12,15,19)),(r-12,(90,96,99)),(r-19,(19,23,28)),(r-32,(44,49,54)),(r-42,(21,25,30)),(r-68,(40,45,49)),(r-72,(11,14,17))]:
-        d.ellipse((cx-rad,cy-rad,cx+rad,cy+rad),fill=col)
-    for a in range(0,360,5):
-        t=math.radians(a);r0=r-29;r1=r-20
-        d.line((cx+math.cos(t)*r0,cy+math.sin(t)*r0,cx+math.cos(t)*r1,cy+math.sin(t)*r1),fill=(161,166,168),width=3)
-    d.ellipse((cx-110,cy-110,cx+110,cy+110),fill=(10,20,25),outline=(75,145,153),width=4)
-    label(d,cx-68,cy-32,'MC',45,(201,220,222));label(d,cx-76,cy+28,'JOG WHEEL',13,(137,169,173))
-    for i,(name,col) in enumerate([('CUE',CYAN),('PLAY',CYAN),('SYNC',BLUE),('SHIFT',None)]): button(d,86+i*112,797,100,60,name,col)
-    for i in range(4): button(d,865+(i%2)*105,395+(i//2)*80,92,60,str(i+1),RED if i==0 else BLUE)
-    label(d,865,360,'HOT CUES',16)
-    for i,t in enumerate(['LOOP IN','OUT','RELOOP','BEAT']): button(d,859+i*105,598,92,53,t,CYAN if i==0 else None)
-    knob(d,908,735,34,'BROWSE');knob(d,1015,735,28,'SELECT')
-    label(d,1212,315,'TEMPO',17);d.rounded_rectangle((1275,345,1302,742),radius=8,fill=(4,5,6),outline=LINE,width=2)
-    for y in range(365,730,30): d.line((1235,y,1262 if (y-365)%60 else 1270,y),fill=(149,163,167),width=2)
-    d.rounded_rectangle((1248,514,1332,555),radius=5,fill=(104,112,115),outline=(196,202,203),width=3)
-    label(d,1207,764,'PITCH RANGE',13);button(d,1200,790,126,48,'MASTER',BLUE)
-    im.save(P/'deck_base.png',optimize=True)
-    # Only lit displays and colored indicators emit; the metal faceplate stays dark.
-    mask=Image.new('RGB',(w,h),(0,0,0)); mp=mask.load(); pix=im.load()
-    for yy in range(h):
-        for xx in range(w):
-            rr,gg,bb=pix[xx,yy]
-            screen=145<=xx<=1015 and 135<=yy<=270
-            colored=(max(rr,gg,bb)>100 and max(rr,gg,bb)-min(rr,gg,bb)>45)
-            if screen or colored: mp[xx,yy]=(rr,gg,bb)
-    mask.save(P/'deck_emissive.png',optimize=True)
+def font(size):
+    return ImageFont.truetype(str(FONT), size)
 
-def mixer():
-    w,h=1200,860;im,d=panel(w,h)
-    label(d,60,45,'MOONCHILD  /  CLUB MIXER',25);label(d,750,51,'FOUR CHANNEL',15,(153,166,172))
-    for ch,x in enumerate([230,410,590,770]):
-        label(d,x-15,98,f'CH {ch+1}',17)
-        for j,name in enumerate(['TRIM','HI','MID','LOW','FILTER']): knob(d,x,170+j*88,25,name)
-        d.rounded_rectangle((x-10,640,x+10,783),radius=4,fill=(4,5,7),outline=(98,105,109),width=2)
-        for y in range(648,782,15): d.line((x+18,y,x+27,y),fill=(120,132,137),width=2)
-        y=715-(ch%3)*20;d.rounded_rectangle((x-34,y,x+34,y+30),radius=5,fill=(126,135,139),outline=(229,230,226),width=2)
-        button(d,x-36,582,72,39,'CUE',CYAN if ch==1 else None)
-    for i,(t,c) in enumerate([('MASTER',CYAN),('BOOTH',BLUE),('PHONES',None),('FX',RED)]): knob(d,1015,145+i*104,30,t)
-    for ch in range(2):
-        for j in range(16): d.rectangle((925+ch*22,622-j*13,937+ch*22,630-j*13),fill=(32,160,112) if j<10 else ((215,166,52) if j<14 else (215,65,76)))
-    d.rounded_rectangle((305,816,785,830),radius=3,fill=(3,4,5),outline=LINE,width=2)
-    d.rounded_rectangle((514,802,576,844),radius=5,fill=(130,139,143),outline=(225,228,227),width=2)
-    label(d,70,790,'HEADPHONES',12);label(d,930,760,'LEVEL',13)
-    im.save(P/'mixer_base.png',optimize=True)
-    mask=Image.new('RGB',(w,h),(0,0,0));mp=mask.load();pix=im.load()
-    for yy in range(h):
-        for xx in range(w):
-            rr,gg,bb=pix[xx,yy]
-            if max(rr,gg,bb)>100 and max(rr,gg,bb)-min(rr,gg,bb)>45: mp[xx,yy]=(rr,gg,bb)
-    mask.save(P/'mixer_emissive.png',optimize=True)
-deck();mixer()
+
+def label(d, xy, text, size=15, color=WHITE, anchor='mm'):
+    d.text(xy, text, fill=color, font=font(size), anchor=anchor)
+
+
+def surface(name, w, h, draw_labels):
+    y, x = np.mgrid[0:h, 0:w].astype(np.float32)
+    # Fine directional machining and restrained wear, not baked directional light.
+    grain = np.sin(y * 2.3) * .65 + np.sin(y * .31 + np.sin(x * .011)) * .4
+    variation = np.sin(x * .018) * np.sin(y * .025)
+    value = 24 + grain + variation * 1.0
+    a = np.stack([value, value + 1, value + 3], axis=-1)
+    im = Image.fromarray(np.uint8(np.clip(a, 0, 255)))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle((8, 8, w-9, h-9), radius=16, outline=(52, 55, 59), width=2)
+    em = Image.new('RGB', (w, h), (0, 0, 0))
+    draw_labels(d, ImageDraw.Draw(em), w, h)
+    im.save(OUT / f'{name}_base.png', optimize=True)
+    em.save(OUT / f'{name}_emissive.png', optimize=True)
+    # OpenGL tangent normal. Keep machining shallow enough for small hardware.
+    ny = np.sin(y * 2.3) * .018
+    nz = np.sqrt(1 - ny * ny)
+    normal = np.stack([np.full_like(x, .5), .5 + ny * .5, .5 + nz * .5], axis=-1)
+    Image.fromarray(np.uint8(normal * 255)).save(OUT / f'{name}_normal.png', optimize=True)
+    rough = np.uint8(np.clip(119 + variation * 4 + grain * 2, 110, 132))
+    orm = np.stack([np.full_like(rough, 255), rough, np.full_like(rough, 185)], axis=-1)
+    Image.fromarray(orm).save(OUT / f'{name}_orm.png', optimize=True)
+
+
+def deck(d, e, w, h):
+    def px(u, v): return (int((u + .165) / .33 * w), int((v + .225) / .45 * h))
+    label(d, (w*.36, 35), 'MOONCHILD  /  MC-02', 20)
+    # Outline behind the raised, angled display; the screen is a separate mesh.
+    d.rounded_rectangle((60, 70, 620, 300), radius=12, fill=(10, 12, 15), outline=(65, 70, 75), width=3)
+    for i in range(4):
+        x, y = px(-.12 + i*.06, -.075)
+        d.rounded_rectangle((x-44, y-20, x+44, y+20),radius=5,fill=(13,15,18),outline=(75,79,82),width=2)
+        label(d, (x,y-35), ['HOT A','HOT B','HOT C','HOT D'][i], 13)
+    x,y = px(-.025,.04)
+    r=int(.092/.33*w)
+    d.ellipse((x-r,y-r,x+r,y+r),outline=(71,77,80),width=3)
+    label(d, px(-.025,.145), 'JOG  /  VINYL', 15)
+    for v,text in [(.10,'CUE'),(.17,'PLAY / PAUSE')]:
+        x,y=px(-.138,v)
+        label(d,(x,y-45),text,13)
+    x,y=px(.130,.055)
+    d.rounded_rectangle((x-9,y-220,x+9,y+220),radius=5,fill=(4,5,7),outline=(88,94,99),width=2)
+    for k in range(11):
+        yy=y-205+k*41
+        d.line((x-35,yy,x-17,yy),fill=(126,131,136),width=2)
+    label(d,(x, y+257),'TEMPO',14)
+    label(d,px(.125,-.190),'BROWSE',13)
+    label(d,px(.125,-.111),'LOAD',13)
+    label(d,(w/2,h-24),'USB MEDIA PLAYER   •   MOONCHILD ORIGINAL',12,(120,129,137))
+
+
+def mixer(d, e, w, h):
+    def px(u,v):return (int((u+.215)/.43*w),int((v+.225)/.45*h))
+    label(d,(w/2,33),'MOONCHILD  /  MX-04',23)
+    for i,x in enumerate([-.145,-.075,-.005,.065]):
+        label(d,px(x,-.192),f'CH {i+1}',16)
+        for z,text in [(-.155,'TRIM'),(-.095,'HI'),(-.035,'MID'),(.025,'LOW / FILTER')]:
+            xx,yy=px(x,z)
+            d.ellipse((xx-26,yy-26,xx+26,yy+26),outline=(91,97,103),width=2)
+            label(d,(xx,yy+43),text,12)
+        xx,yy=px(x,.137)
+        d.rounded_rectangle((xx-7,yy-100,xx+7,yy+100),radius=3,fill=(4,5,7),outline=(79,86,93),width=2)
+        for j in range(9):d.line((xx+16,yy-92+j*23,xx+27,yy-92+j*23),fill=(123,131,138),width=2)
+        label(d,px(x,.074),'CUE',12)
+    for z,text in [(-.15,'MASTER'),(-.075,'BOOTH'),(0,'HEADPHONES')]:
+        label(d,px(.16,z+.035),text,12)
+    x,y=px(.15,.10)
+    d.rounded_rectangle((x-90,y-60,x+90,y+60),radius=8,fill=(4,9,12),outline=(77,85,91),width=2)
+    label(d,(x,y-18),'FX  /  ECHO',14,CYAN)
+    label(e,(x,y-18),'FX  /  ECHO',14,CYAN)
+    label(d,(x,y+18),'1 / 2',18,(172,204,209))
+    label(e,(x,y+18),'1 / 2',18,(172,204,209))
+    for col in range(2):
+        for j in range(13):
+            x,y=px(.13+col*.02,-.18+j*.012)
+            color=(39,163,112) if j<8 else ((189,147,49) if j<11 else (191,55,59))
+            d.rectangle((x-7,y-4,x+7,y+4),fill=color)
+            e.rectangle((x-7,y-4,x+7,y+4),fill=color)
+    x,y=px(-.025,.198)
+    d.rounded_rectangle((x-260,y-7,x+260,y+7),radius=3,fill=(5,6,8),outline=(91,97,102),width=2)
+    label(d,(x,y-25),'CROSSFADER',13)
+
+
+def jog():
+    n=768
+    y,x=np.mgrid[0:n,0:n].astype(np.float32)
+    r=np.sqrt((x-n/2)**2+(y-n/2)**2)/(n/2)
+    rings=np.sin(r*550)*1.2
+    v=42+rings
+    im=Image.fromarray(np.uint8(np.clip(np.stack([v,v+2,v+4],axis=-1),0,255)))
+    d=ImageDraw.Draw(im)
+    for a in range(0,360,6):
+        t=math.radians(a)
+        p=[(n/2+math.cos(t)*n*s,n/2+math.sin(t)*n*s) for s in [.439,.454]]
+        d.line(p,fill=(178,184,187),width=2)
+    d.ellipse((n*.31,n*.31,n*.69,n*.69),fill=(10,16,20),outline=(63,111,118),width=3)
+    label(d,(n/2,n/2-10),'MC',56,(182,202,209))
+    label(d,(n/2,n/2+42),'JOG CONTROL',15,(101,142,150))
+    im.save(OUT/'jog_base.png',optimize=True)
+    normal=Image.new('RGB',(n,n),(128,128,255));normal.save(OUT/'jog_normal.png',optimize=True)
+    orm=np.zeros((n,n,3),dtype=np.uint8);orm[:,:,0]=255;orm[:,:,1]=np.uint8(np.clip(116+np.sin(r*550)*3,105,126));orm[:,:,2]=220
+    Image.fromarray(orm).save(OUT/'jog_orm.png',optimize=True)
+
+
+def display():
+    w,h=1024,400
+    im=Image.new('RGB',(w,h),(3,10,15));d=ImageDraw.Draw(im)
+    label(d,(28,27),'MOONCHILD  /  TRACK 01',30,(149,205,215),anchor='lt')
+    label(d,(30,79),'03:24.08',52,(211,226,230),anchor='lt')
+    label(d,(w-30,42),'128.0',50,(177,216,225),anchor='rt')
+    label(d,(w-30,104),'BPM',24,(80,142,156),anchor='rt')
+    d.line((25,174,w-25,174),fill=(31,67,79),width=2)
+    for x in range(26,w-26,3):
+        hh=10+int(63*abs(math.sin(x*.041)*math.sin(x*.011)))
+        d.line((x,255-hh,x,255+hh),fill=(37,139+hh//2,169+hh//3),width=2)
+    d.line((w//2,176,w//2,336),fill=(215,102,85),width=3)
+    label(d,(30,360),'HOT CUE A        00:48      /      06:12',22,(108,160,170),anchor='lt')
+    im.save(OUT/'display_base.png',optimize=True)
+
+surface('deck',768,1024,deck)
+surface('mixer',1024,1024,mixer)
+jog()
+display()

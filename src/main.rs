@@ -168,7 +168,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     let deck = meshes.add(shapes::rounded_box(Vec3::new(14.0,0.04,4.4),0.018,4,1.0 / look::tile::TREAD).build());
     commands.spawn((Mesh3d(deck),MeshMaterial3d(s.tread.clone()),Transform::from_xyz(0.0,0.94,-7.55)));
     commands.spawn((Mesh3d(meshes.add(shapes::tube(&[Vec3::new(-6.95,0.9,-5.33),Vec3::new(6.95,0.9,-5.33)],0.014,8,1.0).build())), MeshMaterial3d(neon.cyan.clone())));
-    dj_gear::spawn(&mut commands, &mut meshes, &mut materials, &asset_server);
+    dj_gear::spawn(&mut commands, &mut meshes, &mut materials, &asset_server, &mut mip_queue);
     // One high-resolution emissive screen replaces oversized square pixels.
     commands.spawn((Mesh3d(meshes.add(shapes::rounded_box(Vec3::new(11.0,3.75,0.12),0.05,6,steel_uv).build())),
         MeshMaterial3d(s.darksteel.clone()), Transform::from_xyz(0.0,4.5,-9.82)));

@@ -10,7 +10,7 @@ Ein begehbarer Club in Rust und Bevy 0.20.1, gestaltet als Luxus-Lounge mit Neon
 - **Rendering:** Deferred Rendering mit Bildschirm-Spiegelungen (SSR), volumetrischem Licht im Club-Dunst, HDR, Bloom, TAA, SSAO und Contact Shadows.
 - **Qualitätsstufen:** Mittel, Hoch und Ultra, im Spiel mit F2 umschaltbar. Mesh-LOD für fein gerundete, wiederholte Teile.
 - **Branch:** `main` enthält den Lounge-Ausbau und die anschließenden Bühnen- und Lichtverbesserungen.
-- **Geprüft:** `cargo check --locked`, `cargo test --locked` (23 Tests) und `cargo build --locked` auf Linux. Der Spielstart und vier Aufnahmen in Mittel sowie ein zeitbegrenzter Hoch-Starttest wurden mit Software-Vulkan geprüft. Bildrate und Aussehen auf echter Hardware sind ungeprüft (siehe [Prüfstand](#prüfstand)).
+- **Geprüft:** `cargo check --locked`, `cargo test --locked` (26 Tests) und `cargo build --locked` auf Linux. Der Spielstart und vier Aufnahmen in Mittel sowie ein zeitbegrenzter Hoch-Starttest wurden mit Software-Vulkan geprüft. Bildrate und Aussehen auf echter Hardware sind ungeprüft (siehe [Prüfstand](#prüfstand)).
 
 ## Start auf CachyOS / Arch Linux
 
@@ -323,3 +323,13 @@ Diese Änderungen sind eine Weiterentwicklung des Bevy-Projekts; eine Grafikqual
 Prüfung dieser Überarbeitung: Auf Ubuntu liefen `cargo check --locked`, `cargo test --locked` (23 bestanden) und `cargo build --locked`. Vier Screenshots in Mittel bei 960×600 wurden aus dem laufenden Spiel mit Mesa llvmpipe/Vulkan und ausgeschaltetem HUD erstellt (`docs/screenshots/40_overhaul_stage.jpg` bis `43_overhaul_upper.jpg`). Hoch wurde mit geladenen Assets im Rahmen eines zeitbegrenzten Software-Starttests geprüft; dabei wurde kein Hoch-Screenshot und keine aussagekräftige FPS-Messung erstellt. Die Materialdateien wurden zweimal erzeugt und per SHA-256 verglichen. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43919457048).
 
 **Stand der Zielerreichung:** Die überprüften Aufnahmen bleiben sichtbar stilisiert und reichen nicht an die gewünschte fotorealistische AAA-Referenz heran. Insbesondere die Proportionen, die noch einfachen Bühnenelemente, die Beleuchtung und die Material- und Umgebungsdetails benötigen weitere Arbeit. Der bisherige Renderpfad verwendet keine hardwarebasierte globale Beleuchtung oder Raytracing. Die Bilder und der Softwaretest belegen keine bestimmte Bildrate oder das Erscheinungsbild auf der RX 9070 XT.
+
+## DJ-Station: Bedienseite und Hardware
+
+Die Geräte sind in einem gemeinsamen Koordinatensystem aufgebaut und um 180 Grad zur DJ-Position hinter dem Pult gedreht. Player, Mixer, Beschriftungen, Jogwheels und Displays teilen diese Ausrichtung. Die Bedienkante zeigt in der Szene nach -Z; die Rückseite mit Anschlüssen und Kabeln zeigt zur Tanzfläche.
+
+Zwei Player haben je 0,33×0,45 m Grundfläche und der Mixer 0,43×0,45 m. Alle stehen auf der vorhandenen gekrümmten Pultplatte. Dazu kommen ausgeformte Jogwheels mit Metallrand, geneigte Displays, griffige Regler, Fader, Cue-/Play-Tasten, Hot-Cue-Pads, Füße, Lüftungsschlitze, Anschlüsse und Kabel. Kleine Bedienelemente werden mit Entfernung ausgeblendet; die Gerätegehäuse und Texturflächen bleiben bestehen. Es handelt sich weiterhin um optische Ausstattung ohne bedienbare Audiofunktion.
+
+Die neuen Frontplatten-, Jogwheel- und Displaygrafiken sind eigene Moonchild-Motive. Base-Color-, Normal- und ORM-Maps sowie gezielte Emissionskarten liegen in `assets/textures/dj/`; `tools/generate_dj_textures.py` erzeugt sie reproduzierbar. Mipmaps und anisotrope Filterung werden auch für diese Bilder erzeugt, Normal- und ORM-Maps werden linear geladen.
+
+Prüfung der DJ-Station: Auf Ubuntu liefen `cargo check --locked`, `cargo test --locked` (26 bestanden) und `cargo build --locked` erfolgreich. Drei Aufnahmen aus dem laufenden Spiel zeigen Bedienseite, Nahansicht und Rückseite (`docs/screenshots/44_dj_operator.jpg` bis `46_dj_audience.jpg`). Der Test lief in Mittel bei 960×600 mit Mesa llvmpipe/Vulkan; er ist keine FPS-Messung für die RX 9070 XT. Die drei neuen Tests prüfen die DJ-seitige Ausrichtung, die UV-/Dreiecksrichtung und den Platz auf der vorhandenen Pultplatte. Die zwölf Texturdateien wurden zweimal erzeugt und per SHA-256 verglichen. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43926899959).
