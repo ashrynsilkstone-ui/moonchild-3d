@@ -48,6 +48,28 @@ impl MeshData {
     }
 }
 
+/// Curved, tapered leaf with a full 0..1 UV map and smooth analytic normals.
+/// It is double-sided at the material level; the narrow tips avoid degenerate UVs.
+pub fn leaf(length: f32, width: f32, along: usize, across: usize) -> MeshData {
+    let mut m = MeshData::default();
+    let (along, across) = (along.max(2), across.max(2));
+    for i in 0..=along {
+        let u = i as f32 / along as f32;
+        let a = std::f32::consts::PI * u;
+        let radius = 0.015 + 0.985 * a.sin();
+        let dr = 0.985 * std::f32::consts::PI * a.cos();
+        for j in 0..=across {
+            let v = 2.0 * j as f32 / across as f32 - 1.0;
+            let p = Vec3::new(v * width * 0.5 * radius, 0.018 * a.sin() * (1.0 - 0.3 * v * v), (u - 0.5) * length);
+            let du = Vec3::new(v * width * 0.5 * dr, 0.018 * std::f32::consts::PI * a.cos() * (1.0 - 0.3 * v * v), length);
+            let dv = Vec3::new(width * 0.5 * radius, -0.0108 * a.sin() * v, 0.0);
+            m.vertex(p, du.cross(dv), Vec2::new((v + 1.0) * 0.5, 1.0 - u));
+        }
+    }
+    m.grid(0, along + 1, across + 1, false);
+    m
+}
+
 /// A point of a 2D cross-section: `p.x` lateral, `p.y` up, with its outward normal.
 #[derive(Clone, Copy)]
 pub struct ProfilePoint { pub p: Vec2, pub n: Vec2 }
@@ -497,6 +519,7 @@ mod tests {
         assert!(outward(&sweep(&rounded_rect(0.5, 0.4, 0.08, 4), &arc_frames(Vec3::ZERO, 2.0, 0.0, 1.0, 16), true, true, 1.0)));
         assert!(outward(&cushion(Vec3::new(0.4, 0.1, 0.3), 0.3, 0.6, 48, 1.0)));
         assert!(outward(&fluted_lathe(&[Vec2::new(0.3, 0.0), Vec2::new(0.3, 0.5)], 16, 0.02, 4, 1.0)));
+        assert!(outward(&leaf(0.21, 0.07, 48, 12)));
         assert!(outward(&arch_panel(Vec3::ZERO, Vec3::X, Vec3::Z, 1.0, 2.0, 1.0)));
         let skin = fluted_skin(&path_frames(&[Vec3::ZERO, Vec3::new(2.0, 0.0, 0.0)]), 0.0, 1.0, 0.1, 0.02, 1.0);
         assert!(outward(&skin));

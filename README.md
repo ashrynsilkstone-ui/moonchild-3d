@@ -135,13 +135,14 @@ Die Nahstufe ist dicht tesselliert, Sofakissen haben zum Beispiel rund 3000 Drei
 
 ## Texturen und Materialien
 
-`tools/generate_textures.py` erzeugt alle Texturen deterministisch aus gesetztem Rauschen und gezeichneten Strukturen. Alle sind kachelbar, ohne sichtbare Nähte. Sie liegen unter `assets/textures/moonchild/`:
+`tools/generate_textures.py` erzeugt die kachelbaren Oberflächen deterministisch aus gesetztem Rauschen und gezeichneten Strukturen. Das einzelne Blatt ist nicht kachelbar und verwendet eine eigene UV-Abwicklung. Sie liegen unter `assets/textures/moonchild/`:
 
 | Set | Auflösung | Kachel | Inhalt / Einsatz |
 |---|---|---|---|
 | `terrazzo` | 2048² | 2 m | polierter Anthrazit-Terrazzo mit Marmor-, Messing- und Weinrot-Splittern (Hallen- und Galerieboden) |
 | `marble` | 2048² | 2 m | schwarzer Marmor im Nero-Marquina-Stil mit weißen Adern (Tanzfläche, Theken, Tische) |
 | `concrete` | 2048² | 2 m | dunkler Schalungsbeton mit Tafelfugen und Ankerlöchern (Wände, Decke) |
+| `foliage` | 1024² | Einzelblatt | Blatt mit Adern: Base-Color-, Normal- und ORM-Map (Tischpflanzen) |
 | `velvet` | 1024² | 0,5 m | weinroter Samt mit gedrücktem Flor |
 | `boucle` | 1024² | 0,3 m | cremefarbenes Bouclé aus Garnschlaufen |
 | `brass` | 1024² | 1 m | gebürstetes, leicht lackiertes Messing mit zarter Patina |
@@ -201,13 +202,14 @@ Das ist eine vereinfachte 2,5D-Kollision, keine Physik-Engine und keine Mesh-Kol
 
 ```bash
 python3 tools/generate_textures.py
+python3 tools/generate_foliage.py
 ```
 
 ```bash
 python3 tools/generate_textures.py velvet marble
 ```
 
-- Ohne Argument entstehen alle ausgelieferten Sets, mit Namen nur die genannten.
+- Ohne Argument erzeugt `generate_textures.py` seine ausgelieferten Sets, mit Namen nur die genannten; `generate_foliage.py` erzeugt die Blatttexturen.
 - `MOONCHILD_TEX_SCALE` (Standard 2) skaliert die Auflösung, alle pixelbasierten Größen skalieren mit. Mit `1` entsteht die halbe Auflösung bei gleichem Aussehen.
 - Die ausgemusterten Sets `floor` und `leather` werden nicht mehr ausgeliefert, lassen sich aber per Name noch erzeugen.
 
@@ -273,3 +275,17 @@ Siehe [ASSETS.md](ASSETS.md). Alle Geometrie- und Texturdaten sind für Moonchil
 ## Lizenz
 
 MIT, siehe LICENSE.
+
+## Detailausbau und Auflösung
+
+Sitz- und Rückenkissen sowie Zierkissen und Polsterrollen haben feinere nahe Meshes. Die Tischpflanzen verwenden eigene doppelseitige Blattmeshes und selbst erzeugte Base-Color-, Normal- und ORM-Maps; aus der Ferne bleiben vereinfachte Blätter sichtbar. Auch die runde Tanzfläche hat mehr Segmente. Die vorhandenen LOD-Stufen bleiben aktiv.
+
+Das Fenster startet mit 1920×1080. Eine andere Auflösung kann beim Start gewählt werden, zum Beispiel:
+
+```bash
+MOONCHILD_RESOLUTION=2560x1440 cargo run --release
+```
+
+Gültig sind Breiten von 640 bis 7680 und Höhen von 360 bis 4320 Pixeln; ungültige Werte fallen auf 1920×1080 zurück. Höhere Auflösung und mehr nahe Geometrie kosten zusätzliche Rechenleistung. Grafische Qualität und Bildrate auf einer Radeon RX 9070 XT sind dadurch nicht zugesichert. Die Szene nutzt weiterhin Bevy und keine Unreal-Engine-5-Techniken wie Nanite oder Lumen.
+
+Prüfung dieses Detailausbaus: Auf Ubuntu liefen `cargo check --locked`, `cargo test --locked` (19 bestanden) und `cargo build --locked` erfolgreich. Der neue Stand wurde zusätzlich mit Mesa llvmpipe/Vulkan in der Stufe Mittel bei 960×600 gestartet; dabei entstand `docs/screenshots/31_lounge_table.jpg` direkt aus dem Spiel. Der Software-Renderer erlaubt keine Aussage über Qualitätseinstellungen oder Bildrate auf der Radeon RX 9070 XT. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43888219908).
