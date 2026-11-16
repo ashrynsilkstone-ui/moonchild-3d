@@ -302,6 +302,6 @@ Der Prüfzweig für diesen Ausbau bestand auf Ubuntu `cargo check --locked`, `ca
 
 ## Kissenkorrektur und Bühnenbildschirm
 
-Das Biegen der Sofakissen verändert die Händigkeit des lokalen Koordinatensystems. Deshalb werden beim Biegen die Dreiecke nun umgedreht: Ihre sichtbaren Seiten zeigen wieder nach außen und können durch Backface-Culling nicht mehr verschwinden. Ein Regressionstest prüft die Ausrichtung gebogener Sitz- und Dekokissen. Andere Transparenz- oder LOD-Effekte sind dadurch nicht grundsätzlich ausgeschlossen.
+Das Biegen der Sofakissen verändert die Händigkeit des lokalen Koordinatensystems. Deshalb werden beim Biegen die Dreiecke nun umgedreht: Ihre sichtbaren Seiten zeigen wieder nach außen und können durch Backface-Culling nicht mehr verschwinden. Regressionstests prüfen die Ausrichtung gebogener Sitz- und Dekokissen sowie die Polstellen der Kissenmeshes. Andere Transparenz- oder LOD-Effekte sind dadurch nicht grundsätzlich ausgeschlossen.
 
 Die grobe Bildschirm-Kachelmatrix wurde durch eine eigene 2048×1024-Emissionsgrafik und 60 kleine animierte Pegelleuchten ersetzt. Die Decken- und Showlichtprogramme sowie das warmweiße Grundlicht bleiben bestehen. Die Grafik ist eine eigene Illustration und kein Fotoscan; die Balken sind eine Showanimation und nicht audiosynchron.
