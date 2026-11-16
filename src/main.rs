@@ -322,7 +322,7 @@ fn safe_up(dir: Vec3) -> Vec3 { if dir.normalize_or(Vec3::NEG_Y).y.abs() > 0.95 
 /// Unit cone along -Z (apex at the origin, radius 1 at length 1) whose vertex
 /// alpha fades from the apex to the base; scaled per frame to match a spot.
 fn beam_cone() -> Mesh {
-    const SIDES: usize = 28;
+    const SIDES: usize = 48;
     const RINGS: usize = 10;
     let mut positions = vec![]; let mut normals = vec![]; let mut colors = vec![]; let mut indices: Vec<u32> = vec![];
     for r in 0..=RINGS {
@@ -433,7 +433,7 @@ fn animate_lights(time: Res<Time>, show: Res<Show>,
             let Ok((handle, mut beam)) = beams.get_mut(child) else { continue };
             beam.scale = Vec3::new(radius, radius, len);
             if let Some(mut material) = materials.get_mut(&handle.0) {
-                material.base_color = Color::srgba(r, g, b, 0.13 * level);
+                material.base_color = Color::srgba(r, g, b, 0.035 * level);
             }
         }
     }

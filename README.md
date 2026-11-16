@@ -6,7 +6,7 @@ Ein begehbarer Club in Rust und Bevy 0.20.1, gestaltet als Luxus-Lounge mit Neon
 
 ## Stand auf einen Blick (16. November 2026)
 
-- **Gestaltung:** Luxus-Lounge 2026. Samt- und Bouclé-Sofas, Messing, schwarzer Marmor, Terrazzo, geriffelte Eiche, Rauch- und Opalglas. Dazu Neon-Akzente in Cyan, Magenta und warmem Rot.
+- **Gestaltung:** Luxus-Lounge 2026. Leder-, Samt- und Bouclé-Sofas, Messing, schwarzer Marmor, Terrazzo, geriffelte Eiche, Rauch- und Opalglas. Dazu Neon-Akzente in Cyan, Magenta und warmem Rot.
 - **Rendering:** Deferred Rendering mit Bildschirm-Spiegelungen (SSR), volumetrischem Licht im Club-Dunst, HDR, Bloom, TAA, SSAO und Contact Shadows.
 - **Qualitätsstufen:** Mittel, Hoch und Ultra, im Spiel mit F2 umschaltbar. Mesh-LOD für fein gerundete, wiederholte Teile.
 - **Branch:** `main` enthält den Lounge-Ausbau und die anschließenden Bühnen- und Lichtverbesserungen.
@@ -65,10 +65,10 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 - Schwebende Treppe mit Riffelblech-Stufen, Handläufen mit Cyan-Glow und warmer Lichtkante an jeder Stufe.
 
 **Lounges** (vier geschwungene „Cloud“-Sofas)
-- Auf der Galerie weinroter Samt mit Bouclé-Kissen, unten cremefarbenes Bouclé mit Samtkissen.
+- Auf der Galerie weinrotes Leder mit Bouclé-Kissen, unten cremefarbenes Bouclé mit Samtkissen.
 - Sitz- und geneigte Rückenkissen sind weich geformte Superquadriken, die auf den Bogen gebogen werden, sodass keine Keilspalten entstehen. Dazu Endrollen und Dekokissen.
 - Gepolsterter Sockel auf Messing-Fußleiste mit Lichtfuge, Messing-Paspel an der Rückenoberkante.
-- Kleine prozedurale Pflanzenarrangements in Messingvasen auf den bestehenden Couchtischen. Die Blätter besitzen ein einfaches grünes PBR-Material; sie sind keine Fotoscans.
+- Kleine prozedurale Pflanzenarrangements in Messingvasen auf den bestehenden Couchtischen. Die Blätter verwenden eigene Farb-, Normal- und Rauheitskarten; sie sind keine Fotoscans.
 - Couchtisch mit geriffeltem Messingfuß, Marmorplatte, Lichtring und Rauchglaslaterne. Über den Galerie-Lounges je drei Kugelleuchten aus Opalglas.
 
 **Bar**
@@ -145,6 +145,8 @@ Die Nahstufe ist dicht tesselliert, Sofakissen haben zum Beispiel rund 3000 Drei
 | `stage_screen` | 2048×1024 | Einzelmotiv | eigene Emissionsgrafik auf dem Bühnenbildschirm |
 | `bottle_label` | 1024×512 | Einzelmotiv | eigene Moonchild-Etiketten auf den Barflaschen |
 | `foliage` | 1024² | Einzelblatt | Blatt mit Adern: Base-Color-, Normal- und ORM-Map (Tischpflanzen) |
+| `leather_burgundy` | 1024² | 0,5 m | eigenes bordeauxfarbenes Leder mit Narbung und abgestimmter Rauheit (Galerie-Sofas) |
+| `acoustic_charcoal` | 1024² | 0,5 m | eigenes dunkles Gewebe für akustische Wand- und Deckenelemente |
 | `velvet` | 1024² | 0,5 m | weinroter Samt mit gedrücktem Flor |
 | `boucle` | 1024² | 0,3 m | cremefarbenes Bouclé aus Garnschlaufen |
 | `brass` | 1024² | 1 m | gebürstetes, leicht lackiertes Messing mit zarter Patina |
@@ -207,6 +209,7 @@ python3 tools/generate_textures.py
 python3 tools/generate_foliage.py
 python3 tools/generate_bottle_label.py
 python3 tools/generate_stage_screen.py
+python3 tools/generate_overhaul_materials.py
 ```
 
 ```bash
@@ -307,3 +310,11 @@ Das Biegen der Sofakissen verändert die Händigkeit des lokalen Koordinatensyst
 Die grobe Bildschirm-Kachelmatrix wurde durch eine eigene 2048×1024-Emissionsgrafik und 60 kleine animierte Pegelleuchten ersetzt. Die Decken- und Showlichtprogramme sowie das warmweiße Grundlicht bleiben bestehen. Die Grafik ist eine eigene Illustration und kein Fotoscan; die Balken sind eine Showanimation und nicht audiosynchron.
 
 Prüfung dieses Stands: `cargo check --locked`, `cargo test --locked` (21 bestanden) und `cargo build --locked` liefen auf Ubuntu erfolgreich. Der Spielstand wurde mit Mesa llvmpipe/Vulkan in Mittel bei 960×600 gestartet. Aufnahmen der unteren und oberen Lounge sowie der Bühnenansicht liegen als `37_*.jpg` bis `39_*.jpg` unter `docs/screenshots/`. Im Vergleich mit der vorherigen Aufnahme sind die Sitzflächen sichtbar und die zuvor erkennbaren kleinen dreieckigen Flecken dort nicht mehr zu sehen. Der Softwarelauf belegt keine bestimmte Grafikqualität oder Bildrate auf der RX 9070 XT. [Prüflauf](https://github.com/ashrynsilkstone-ui/moonchild-3d/actions/runs/43897544059).
+
+## Szenenüberarbeitung: Material und Raum
+
+Die Galerie-Sofas verwenden bordeauxfarbene Lederkarten mit Narbung, Normal- und Rauheitsstruktur und einer dezenten Klarlackschicht. Ein zweites neues PBR-Set bildet dunklen Akustikstoff für Teile der Wand- und Deckenverkleidung. Beide Sets sind selbst erzeugt, kachelbar und enthalten Base Color, Normal und ORM; der Generator ist `tools/generate_overhaul_materials.py`. Die gekrümmten Sofas besitzen zusätzliche Paspeln und flache, gewebte Teppiche. Hinter der Bühne gibt ein geschichteter Stahl- und Messingrahmen dem Bildschirm mehr Tiefe; auch die Bar besitzt zusätzliche Gläser und einen Shaker.
+
+In der Stufe Mittel sind die einfachen Lichtkegel zurückhaltender, damit ihre zuvor flächigen Überlagerungen die Architektur weniger stark verdecken. Hoch und Ultra verwenden weiterhin die vorhandenen volumetrischen Lichtstrahlen. Die warme Grundbeleuchtung, Bewegungssteuerung, Sprünge und die bestehenden Kollisionsmaße bleiben erhalten. Die neuen Dekorationen liegen an Wänden, an der Decke oder innerhalb bestehender Möbel- und Bühnenbereiche.
+
+Diese Änderungen sind eine Weiterentwicklung des Bevy-Projekts; eine Grafikqualität wie Resident Evil Requiem, Fotorealismus, Raytracing oder eine bestimmte Bildrate werden damit nicht behauptet.

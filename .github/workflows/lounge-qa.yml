@@ -1,0 +1,50 @@
+name: Moonchild overhaul checks
+on: [push, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      RUSTFLAGS: -C link-arg=-fuse-ld=lld
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev lld
+      - name: Check project
+        run: cargo check --locked
+      - name: Test project
+        run: cargo test --locked
+      - name: Build project
+        run: cargo build --locked
+      - name: Install software graphics dependencies
+        run: sudo apt-get install -y --no-install-recommends xvfb libxkbcommon-x11-0 mesa-vulkan-drivers python3-pil
+      - name: Capture the running game
+        run: |
+          mkdir -p /tmp/moonchild-shots
+          export BEVY_ASSET_ROOT="$PWD" MOONCHILD_SHOTS=/tmp/moonchild-shots MOONCHILD_SHOT_FILTER=01_entrance,03_bar,31_lounge_table,40_overhaul_upper MOONCHILD_RESOLUTION=960x600 MOONCHILD_SHOT_FAST=1 MOONCHILD_QUALITY=mittel
+          timeout 420s xvfb-run -a -s '-screen 0 960x600x24' target/debug/moonchild-3d > /tmp/moonchild.log 2>&1 || { cat /tmp/moonchild.log; exit 1; }
+          cat /tmp/moonchild.log
+          if grep -E 'Path not found:|panicked at' /tmp/moonchild.log; then exit 1; fi
+          test -s /tmp/moonchild-shots/01_entrance.png
+          test -s /tmp/moonchild-shots/03_bar.png
+          test -s /tmp/moonchild-shots/40_overhaul_upper.png
+          test -s /tmp/moonchild-shots/31_lounge_table.png
+          for shot in 01_entrance 03_bar 31_lounge_table 40_overhaul_upper; do
+            /usr/bin/python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]); im.thumbnail((960,600)); im.convert("RGB").save(sys.argv[2],quality=75)' "/tmp/moonchild-shots/$shot.png" "/tmp/$shot.jpg"
+            echo "GAME_SCREENSHOT_BEGIN $shot"
+            base64 -w0 "/tmp/$shot.jpg"
+            echo
+            echo "GAME_SCREENSHOT_END $shot"
+          done
+      - name: Check high-quality renderer startup
+        run: |
+          set +e
+          env -u MOONCHILD_SHOTS -u MOONCHILD_SHOT_FILTER -u MOONCHILD_SHOT_FAST MOONCHILD_RESOLUTION=640x360 MOONCHILD_QUALITY=hoch timeout 120s xvfb-run -a -s '-screen 0 640x360x24' target/debug/moonchild-3d > /tmp/moonchild-hoch.log 2>&1
+          result=$?
+          set -e
+          cat /tmp/moonchild-hoch.log
+          if [ "$result" -ne 124 ]; then echo "Unexpected high-quality exit: $result"; exit 1; fi
+          grep -q 'Grafikqualitaet: HOCH' /tmp/moonchild-hoch.log
+          if grep -E 'Path not found:|panicked at' /tmp/moonchild-hoch.log; then exit 1; fi

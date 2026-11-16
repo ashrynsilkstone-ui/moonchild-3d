@@ -4,6 +4,7 @@ Alle Assets dieses Repositories wurden für Moonchild selbst erzeugt. Es wurden 
 
 | Pfad | Herkunft | Werkzeug |
 |---|---|---|
+| `assets/textures/moonchild/leather_burgundy_*.png`, `acoustic_charcoal_*.png` | eigene periodische PBR-Materialkarten | `tools/generate_overhaul_materials.py` (Python, NumPy, Pillow) |
 | `assets/textures/moonchild/stage_screen.png` | eigenes Bühnenmotiv, mit lokal installiertem DejaVu Sans beschriftet; Schriftdatei nicht mitgeliefert | `tools/generate_stage_screen.py` (Python, NumPy, Pillow) |
 | `assets/textures/moonchild/bottle_label.png` | eigenes Flaschenetikett; Beschriftung mit lokal installiertem DejaVu Sans, Schriftdatei nicht mitgeliefert | `tools/generate_bottle_label.py` (Python, Pillow) |
 | `assets/textures/moonchild/foliage_*.png` | selbst berechnete Blattadern, Normalen und ORM | `tools/generate_foliage.py` (Python, NumPy, Pillow) |

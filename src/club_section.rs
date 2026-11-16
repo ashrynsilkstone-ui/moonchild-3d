@@ -11,6 +11,7 @@ use crate::shapes::{self, arc_frames, path_frames, rounded_rect, sweep, tube, Fr
 
 /// Floor LED strips sit this far above the dance-floor surface (never inside it).
 pub const FLOOR_LED_LIFT: f32 = 0.0025;
+const LOUNGE_RUG_RADIUS: f32 = 1.58;
 
 pub struct Neon {
     pub cyan: Handle<StandardMaterial>,
@@ -269,9 +270,13 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
     let (a0, a1) = LOUNGE_ARC;
     let r = LOUNGE_RADIUS;
     let upper = centre.y > 1.0;
-    let (fabric, fabric_tile, accent, accent_tile) = if upper { (&s.velvet, tile::VELVET, &s.boucle, tile::BOUCLE) }
+    let (fabric, fabric_tile, accent, accent_tile) = if upper { (&s.leather_burgundy, tile::LEATHER_BURGUNDY, &s.boucle, tile::BOUCLE) }
         else { (&s.boucle, tile::BOUCLE, &s.velvet, tile::VELVET) };
     let arc = |b0: f32, b1: f32, n: usize| arc_frames(centre, r, b0, b1, n);
+    // Low-profile woven rug, entirely below seating and table; it does not
+    // introduce a new obstacle and follows the lounge floor elevation.
+    cx.put(shapes::annulus(centre + Vec3::Y * 0.004, 0.0, LOUNGE_RUG_RADIUS, 0.0, TAU, 128, uv(tile::ACOUSTIC)), &s.acoustic_charcoal);
+    cx.put(tube(&ring_points(centre + Vec3::Y * 0.009, LOUNGE_RUG_RADIUS - 0.01, 128), 0.004, 8, uv(tile::DARKSTEEL)), &s.darksteel);
     // Brass kick plinth and a warm light gap under the upholstered base.
     cx.put(sweep(&shifted(rounded_rect(0.6, 0.07, 0.015, 3), 0.07, 0.0), &arc(a0 + 0.02, a1 - 0.02, 96), true, true, uv(tile::BRASS)), &s.brass);
     cx.put(tube(&offset(&arc(a0 + 0.06, a1 - 0.06, 96), -0.24, 0.035), 0.009, 8, 1.0), if upper { &neon.magenta } else { &neon.red });
@@ -295,6 +300,9 @@ fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMateria
             Vec3::new(0.0, 0.68, 0.25)), 0.2, Vec3::new(0.0, 0.45, 0.25)), centre, r, am);
         cx.put_lod(backc(80), backc(14), fabric, Transform::IDENTITY, lod::LARGE, true);
     }
+    // Fine piping follows the actual curved silhouette of the upholstery.
+    let seam_frames = arc(a0 + 0.10, a1 - 0.10, 128);
+    cx.put(tube(&offset(&seam_frames, -0.265, 0.425), 0.0045, 10, uv(tile::BRASS)), &s.brass);
     // Round bolsters closing both ends.
     for (a, dir) in [(a0, 1.0f32), (a1, -1.0)] {
         let am = a + dir * 0.04;
@@ -460,6 +468,19 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
                 Transform::from_xyz(p.x, y - 0.03, p.z).looking_at(Vec3::new(p.x, 0.0, p.z), Vec3::Z)));
         }
     }
+    // Two hand-sized stemmed glasses and a steel cocktail shaker, all resting
+    // on the existing bar footprint, use shared turned meshes.
+    let stem = cx.mesh(shapes::lathe(&[Vec2::new(0.0,0.0), Vec2::new(0.045,0.0), Vec2::new(0.045,0.008),
+        Vec2::new(0.010,0.015), Vec2::new(0.008,0.11), Vec2::new(0.025,0.12),
+        Vec2::new(0.065,0.20), Vec2::new(0.061,0.205)], 48, 1.0));
+    let shaker = cx.mesh(shapes::lathe(&[Vec2::new(0.0,0.0),Vec2::new(0.04,0.0),Vec2::new(0.05,0.015),
+        Vec2::new(0.047,0.19),Vec2::new(0.038,0.22),Vec2::new(0.025,0.225),Vec2::new(0.0,0.225)],48,uv(tile::STEEL)));
+    for a in [2.38f32, 3.74] {
+        let p = c + Vec3::new(a.cos(), 0.0, a.sin()) * (r + 0.05) + Vec3::Y * BAR_TOP;
+        cx.c.spawn((Mesh3d(stem.clone()), MeshMaterial3d(glass[2].clone()), Transform::from_translation(p)));
+    }
+    let p = c + Vec3::new(PI.cos(), 0.0, PI.sin()) * (r + 0.05) + Vec3::Y * BAR_TOP;
+    cx.c.spawn((Mesh3d(shaker), MeshMaterial3d(s.steel.clone()), Transform::from_translation(p)));
     // Warm glow from the back bar onto the counter.
     cx.c.spawn((PointLight { intensity: 22_000.0, range: 5.0, color: Color::srgb(1.0, 0.55, 0.25), shadow_maps_enabled: false, ..default() },
         Transform::from_xyz(wall_x - 0.8, 1.9, c.z)));
@@ -635,6 +656,17 @@ mod tests {
                 }
             }
             assert!(checked > 100);
+        }
+    }
+    #[test]
+    fn lounge_rugs_fit_the_room_and_gallery() {
+        for &(x, y, z) in &LOUNGES {
+            assert!(x.abs() + LOUNGE_RUG_RADIUS < ROOM_X);
+            assert!(z.abs() + LOUNGE_RUG_RADIUS < ROOM_Z);
+            if y > 1.0 {
+                let outer_x = x.abs() + LOUNGE_RUG_RADIUS;
+                assert!(z - LOUNGE_RUG_RADIUS > gallery_front(outer_x));
+            }
         }
     }
     #[test]

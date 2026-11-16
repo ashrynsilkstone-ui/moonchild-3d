@@ -28,6 +28,8 @@ pub mod tile {
     pub const BRASS: f32 = 1.0;
     pub const MARBLE: f32 = 2.0;
     pub const OAK: f32 = 1.0;
+    pub const LEATHER_BURGUNDY: f32 = 0.5;
+    pub const ACOUSTIC: f32 = 0.5;
 }
 
 #[derive(Resource, Default)]
@@ -55,6 +57,8 @@ pub struct Surfaces {
     pub opal: Handle<StandardMaterial>,
     pub foliage: Handle<StandardMaterial>,
     pub bottle_label: Handle<StandardMaterial>,
+    pub leather_burgundy: Handle<StandardMaterial>,
+    pub acoustic_charcoal: Handle<StandardMaterial>,
 }
 
 /// Load the original stage graphic and include it in the mipmap queue.
@@ -107,6 +111,8 @@ impl Surfaces {
         let marble = load_maps(server, queue, "marble");
         let oak = load_maps(server, queue, "oak");
         let foliage = load_maps(server, queue, "foliage");
+        let leather_burgundy = load_maps(server, queue, "leather_burgundy");
+        let acoustic_charcoal = load_maps(server, queue, "acoustic_charcoal");
         let bottle_label: Handle<Image> = server.load("textures/moonchild/bottle_label.png");
         queue.0.push((bottle_label.id(), false));
         let back_emissive: Handle<Image> = server.load("textures/moonchild/backlight_emissive.png");
@@ -138,6 +144,8 @@ impl Surfaces {
             brass: materials.add(pbr_from(&brass)),
             brass_polished: materials.add(StandardMaterial { base_color: Color::srgb(0.86, 0.66, 0.36), metallic: 1.0, perceptual_roughness: 0.22, ..default() }),
             marble: materials.add(StandardMaterial { clearcoat: 0.7, clearcoat_perceptual_roughness: 0.06, ..pbr_from(&marble) }),
+            leather_burgundy: materials.add(StandardMaterial { clearcoat: 0.13, clearcoat_perceptual_roughness: 0.45, ..pbr_from(&leather_burgundy) }),
+            acoustic_charcoal: materials.add(pbr_from(&acoustic_charcoal)),
             bottle_label: materials.add(StandardMaterial { base_color_texture: Some(bottle_label), perceptual_roughness: 0.65, ..default() }),
             foliage: materials.add(StandardMaterial { double_sided: true, cull_mode: None, ..pbr_from(&foliage) }),
             oak: materials.add(StandardMaterial { clearcoat: 0.15, clearcoat_perceptual_roughness: 0.4, ..pbr_from(&oak) }),
