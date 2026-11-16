@@ -41,7 +41,8 @@ Dieser Abschnitt ist der Qualitätsmaßstab für den Rest der Szene. Alle Teile 
 - **Geschwungene Galerie** auf 3 m Höhe. Sie folgt einem 20-m-Kreisbogen um die Tanzfläche. Dazu gehören eine abgerundete Stahlblende mit Cyan- und Magenta-Lichtleiste, Rohrgeländer mit Pfosten, Füllungen aus echtem Lochblech (Alpha-Maske), runde Stützsäulen und warme Downlights an der Unterseite.
 - **Schwebende Treppe** mit Riffelblech-Stufen, Wangen, Handläufen samt Cyan-Glow und einer warmen Lichtkante an jeder Stufe.
 - **Vier C-förmige Lounges** (zwei auf der Galerie, zwei darunter) aus bordeauxfarbenem Leder: segmentierte Sitz- und Rückenpolster, gerollte Armlehnen, Sockel mit Bodenglow, runder Säulentisch mit Kerzenlicht und auf der Galerie zusätzlich eine Pendelleuchte.
-- **Halbrunde Bar** mit hinterleuchteter Lochblechfront, Theke aus poliertem Beton, Lederpolster als Armauflage, Fußstange und Barhockern. Dahinter eine Rückbar mit Bernstein-Lichtwand, Stahlregalen und Glasflaschen sowie drei Pendelleuchten.
+- **Lounges (zeitgemäß überarbeitet)**: Statt gerollter Armlehnen und Bistrotisch gibt es jetzt eine niedrige, durchgehende Sitzfläche über einem zurückgesetzten, beleuchteten Sockel. Die Polster sind ein Channel-Tufting aus schmalen senkrechten Lederpolstern in einer schlanken Stahlschale. Die Schale hat eine warme Lichtlinie an der Oberkante, ein gebürstetes Stahlband und darunter eine Lichtfuge, sodass das Sofa schwebt. Dazu kommen Wangen aus Stahl mit Lederauflage, ein niedriger Trommeltisch mit polierter Platte, Lichtring am Fuß und Glaslaterne sowie über der Galerie-Lounge eine Ring-Pendelleuchte.
+- **Halbrunde Bar** mit hinterleuchteter Lochblechfront, Theke aus poliertem Beton, Lederpolster als Armauflage, Fußstange und modernen Barhockern (Trompetenfuß und Säule aus dunklem Stahl, Sitzschale mit Lederpolster und niedriger gebogener Rückenlehne, Fußring mit Streben). Dahinter eine Rückbar mit Bernstein-Lichtwand, Stahlregalen und Glasflaschen sowie drei schlanke Zylinder-Pendelleuchten mit warmem Lichtring.
 - **Runde Deckeninstallation**: ein Stahlring mit 4,2 m Radius und Neonringen, eine Nabe mit warmem Hauptlicht, zwölf Speichen mit Lichtleisten, zwanzig radiale Deckenstreifen, sechs warme Ring-Spots und sechs am Ring hängende Moving Heads mit sichtbaren Gehäusen.
 - **Geschwungenes DJ-Pult** auf einem Bogen, mit hinterleuchteter Lochblechfront. Die vorhandenen DJ-Geräte stehen darauf. Lautsprecher mit abgerundeten Gehäusen, Lochblechgitter und Membranen. Bühnenkante aus Riffelblech und Stufen an der Seite.
 
@@ -121,6 +122,8 @@ In einer Linux-Cloud-Umgebung ohne Grafikkarte (Rust 1.97.1, Mesa 25.2.8 lavapip
 - `cargo test --release`: 14 Tests bestanden. Neu sind ein Test, dass der Traversenturm die Bühnenecke blockiert, und einer, dass jedes Lichtprogramm gültige Bodenziele liefert.
 - Screenshot-Rundgang im laufenden Spiel: `MOONCHILD_SHOT_FAST=1 MOONCHILD_SHOTS=<Ordner> cargo run --release` mit allen 19 Ansichten, ohne Panic. Neu im Repository sind `docs/screenshots/14_*` bis `19_*`. Sie stammen aus diesem Software-Rendering. Die übrigen Bilder sind unverändert die vom 6. November.
 - `MOONCHILD_SHOT_FAST` verkürzt nur die Wartezeiten für langsame Software-Renderer. Die Framezeiten aus diesem Lauf (etwa 0,5 fps auf der CPU) sagen nichts über echte Hardware aus.
+
+Die überarbeiteten Möbel wurden genauso geprüft: Build ohne Warnungen, 14 Tests bestanden, Ansichten Bar und beide Lounges im laufenden Spiel aufgenommen (`docs/screenshots/20_*` bis `22_*`, Software-Rendering).
 
 Nicht geprüft: Lauf und Bildrate auf der RX 9070 XT, echte Tastatur- und Mausbedienung der neuen Tasten 5 bis 7.
 

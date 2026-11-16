@@ -43,6 +43,8 @@ pub mod layout {
     /// C-shaped lounge sofas: (centre x, floor y, centre z).
     pub const LOUNGES: [(f32, f32, f32); 4] = [(-4.8, GALLERY_Y, 8.15), (4.8, GALLERY_Y, 8.15), (-6.0, 0.0, 8.15), (6.0, 0.0, 8.15)];
     pub const LOUNGE_RADIUS: f32 = 1.2;
+    pub const LOUNGE_TABLE_TOP: f32 = 0.42;
+    pub const LOUNGE_TABLE_RADIUS: f32 = 0.5;
     pub const LOUNGE_ARC: (f32, f32) = (-0.35, std::f32::consts::PI + 0.35);
     pub const ROOM_COLUMNS: [(f32, f32); 6] = [(-10.6, -7.8), (-10.6, 0.0), (-10.6, 9.4), (10.6, -7.8), (10.6, 0.0), (10.6, 9.4)];
     /// The DJ booth follows an arc so that it curves towards the dance floor.
@@ -177,13 +179,13 @@ static VOLUMES: LazyLock<Vec<Volume>> = LazyLock::new(|| {
     v.push(solid(rect(bc.x, bc.y - BAR_RADIUS - 0.12, ROOM_X, bc.y + BAR_RADIUS + 0.12), 0.0, BAR_TOP));
     for &a in &BAR_STOOL_ANGLES {
         let p = bc + Vec2::new(a.cos(), a.sin()) * (BAR_RADIUS + 0.48);
-        v.push(solid(Shape::Circle { c: p, r: 0.2 }, 0.0, 0.78));
+        v.push(solid(Shape::Circle { c: p, r: 0.21 }, 0.0, 0.92));
     }
     // Lounges: the C-shaped sofa and a round table.
     for &(x, y, z) in &LOUNGES {
         let pts = arc_points(Vec2::new(x, z), LOUNGE_RADIUS + 0.1, LOUNGE_ARC.0, LOUNGE_ARC.1, 12);
         capsules(&pts, 0.42, y, y + 0.95, &mut v);
-        v.push(solid(Shape::Circle { c: Vec2::new(x, z), r: 0.42 }, y, y + 0.72));
+        v.push(solid(Shape::Circle { c: Vec2::new(x, z), r: LOUNGE_TABLE_RADIUS }, y, y + LOUNGE_TABLE_TOP));
     }
     v
 });

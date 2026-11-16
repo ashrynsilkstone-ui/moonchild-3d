@@ -187,49 +187,80 @@ fn stairs(cx: &mut Ctx, s: &Surfaces, neon: &Neon) {
 }
 
 // ------------------------------------------------------------------ lounges
+/// Circle of points around the Y axis, for rings and loops.
+fn ring_points(c: Vec3, radius: f32, n: usize) -> Vec<Vec3> {
+    (0..=n).map(|i| { let a = TAU * i as f32 / n as f32; c + Vec3::new(a.cos() * radius, 0.0, a.sin() * radius) }).collect()
+}
+
+/// Contemporary C-shaped lounge: a seat that floats over a recessed, lit plinth,
+/// channel-tufted back cushions inside a slim steel shell with a light line,
+/// slab arms, a low drum coffee table and a halo pendant on the gallery.
 fn lounge(cx: &mut Ctx, s: &Surfaces, neon: &Neon, bulb: &Handle<StandardMaterial>, centre: Vec3, index: usize) {
     let (a0, a1) = LOUNGE_ARC;
     let r = LOUNGE_RADIUS;
-    // Plinth with a magenta glow underneath.
-    let plinth = shifted(rounded_rect(0.62, 0.22, 0.04, 3), 0.05, 0.02);
-    cx.put(sweep(&plinth, &arc_frames(centre, r, a0, a1, 48), true, true, uv(tile::DARKSTEEL)), &s.darksteel);
-    cx.put(tube(&offset(&arc_frames(centre, r - 0.27, a0 + 0.03, a1 - 0.03, 48), 0.0, 0.03), 0.012, 8, 1.0), if centre.y > 1.0 { &neon.magenta } else { &neon.red });
-    // Segmented seat and back cushions with rounded profiles.
-    let cushions = 5;
-    let gap = 0.012;
-    for k in 0..cushions {
-        let b0 = a0 + (a1 - a0) * k as f32 / cushions as f32 + gap;
-        let b1 = a0 + (a1 - a0) * (k + 1) as f32 / cushions as f32 - gap;
-        let seat = shifted(rounded_rect(0.6, 0.2, 0.08, 5), 0.02, 0.22);
-        cx.put(sweep(&seat, &arc_frames(centre, r, b0, b1, 14), true, true, uv(tile::LEATHER)), &s.leather);
-        let back = shifted(rounded_rect(0.2, 0.52, 0.09, 5), 0.36, 0.34);
-        cx.put(sweep(&back, &arc_frames(centre, r, b0, b1, 14), true, true, uv(tile::LEATHER)), &s.leather);
+    let arc = |b0: f32, b1: f32, n: usize| arc_frames(centre, r, b0, b1, n);
+    // Recessed plinth; the glow sits under the seat overhang and lights the floor.
+    cx.put(sweep(&shifted(rounded_rect(0.46, 0.14, 0.03, 3), 0.1, 0.0), &arc(a0 + 0.02, a1 - 0.02, 48), true, true, uv(tile::DARKSTEEL)), &s.darksteel);
+    cx.put(tube(&offset(&arc(a0 + 0.05, a1 - 0.05, 48), -0.14, 0.05), 0.01, 8, 1.0), if centre.y > 1.0 { &neon.magenta } else { &neon.red });
+    // Thin dark tray under the cushions, then a low continuous seat in three parts.
+    cx.put(sweep(&shifted(rounded_rect(0.68, 0.06, 0.02, 3), 0.03, 0.14), &arc(a0, a1, 64), true, true, uv(tile::DARKSTEEL)), &s.darksteel);
+    for k in 0..3 {
+        let b0 = a0 + (a1 - a0) * k as f32 / 3.0 + 0.008;
+        let b1 = a0 + (a1 - a0) * (k + 1) as f32 / 3.0 - 0.008;
+        cx.put(sweep(&shifted(rounded_rect(0.62, 0.19, 0.05, 5), 0.0, 0.2), &arc(b0, b1, 24), true, true, uv(tile::LEATHER)), &s.leather);
     }
-    // Rolled armrests at both ends.
-    for &a in &[a0, a1] {
-        let d = Vec3::new(a.cos(), 0.0, a.sin());
-        let p0 = centre + d * (r - 0.28) + Vec3::Y * 0.5; let p1 = centre + d * (r + 0.36) + Vec3::Y * 0.5;
-        cx.put(tube(&[p0, p1], 0.09, 18, uv(tile::LEATHER)), &s.leather);
+    // Outer shell with a warm light line along its top edge.
+    cx.put(sweep(&shifted(rounded_rect(0.07, 0.8, 0.03, 3), 0.37, 0.14), &arc(a0, a1, 64), true, true, uv(tile::DARKSTEEL)), &s.darksteel);
+    cx.put(tube(&offset(&arc(a0 + 0.01, a1 - 0.01, 64), 0.37, 0.945), 0.006, 6, 1.0), &neon.warm);
+    // The shell overhangs the plinth; a light gap underneath makes the sofa float.
+    cx.put(tube(&offset(&arc(a0 + 0.04, a1 - 0.04, 64), 0.35, 0.07), 0.008, 6, 1.0), if centre.y > 1.0 { &neon.magenta } else { &neon.red });
+    // Brushed steel kick band along the outside.
+    cx.put(sweep(&shifted(rounded_rect(0.012, 0.05, 0.004, 2), 0.41, 0.2), &arc(a0 + 0.005, a1 - 0.005, 64), true, true, uv(tile::STEEL)), &s.steel);
+    // Channel-tufted back: narrow vertical cushions.
+    let channels = ((a1 - a0) * r / 0.2).round() as usize;
+    let gap = 0.012 / r;
+    for k in 0..channels {
+        let b0 = a0 + (a1 - a0) * k as f32 / channels as f32 + gap;
+        let b1 = a0 + (a1 - a0) * (k + 1) as f32 / channels as f32 - gap;
+        cx.put(sweep(&shifted(rounded_rect(0.14, 0.47, 0.06, 5), 0.27, 0.4), &arc(b0, b1, 4), true, true, uv(tile::LEATHER)), &s.leather);
     }
-    // Round pedestal table with a lit glass candle.
-    let table = shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.3, 0.0), Vec2::new(0.3, 0.025), Vec2::new(0.06, 0.06), Vec2::new(0.045, 0.1),
-        Vec2::new(0.045, 0.62), Vec2::new(0.08, 0.66), Vec2::new(0.44, 0.67), Vec2::new(0.46, 0.69), Vec2::new(0.44, 0.71), Vec2::new(0.0, 0.71)], 40, uv(tile::DARKSTEEL));
-    cx.put_at(table, &s.darksteel, Transform::from_translation(centre));
-    cx.put_at(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.035, 0.0), Vec2::new(0.04, 0.06), Vec2::new(0.0, 0.06)], 16, 1.0), bulb,
-        Transform::from_translation(centre + Vec3::Y * 0.71));
+    // Slab arms with a leather top pad at both ends.
+    for (a, dir) in [(a0, 1.0f32), (a1, -1.0)] {
+        let w = 0.035 / r;
+        let mid = a + dir * w;
+        cx.put(sweep(&shifted(rounded_rect(0.74, 0.5, 0.025, 3), 0.03, 0.14), &arc(mid - w, mid + w, 2), true, true, uv(tile::DARKSTEEL)), &s.darksteel);
+        let pad = 0.05 / r;
+        cx.put(sweep(&shifted(rounded_rect(0.66, 0.05, 0.022, 4), 0.03, 0.64), &arc(mid - pad, mid + pad, 3), true, true, uv(tile::LEATHER)), &s.leather);
+    }
+    // Low drum coffee table: dark steel drum, polished stone-like top, glow ring at the foot.
+    let top = LOUNGE_TABLE_TOP;
+    let tr = LOUNGE_TABLE_RADIUS;
+    cx.put_at(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.27, 0.0), Vec2::new(0.28, 0.01), Vec2::new(0.28, top - 0.07), Vec2::new(0.0, top - 0.07)], 48, uv(tile::DARKSTEEL)),
+        &s.darksteel, Transform::from_translation(centre));
+    cx.put_at(shapes::lathe(&[Vec2::new(0.0, top - 0.07), Vec2::new(tr - 0.03, top - 0.07), Vec2::new(tr, top - 0.05), Vec2::new(tr, top - 0.02),
+        Vec2::new(tr - 0.02, top), Vec2::new(0.0, top)], 64, uv(tile::FLOOR)), &s.floor, Transform::from_translation(centre));
+    cx.put(tube(&ring_points(centre + Vec3::Y * 0.02, 0.3, 48), 0.008, 6, 1.0), &neon.warm);
+    // Glass lantern on the table.
+    cx.put_at(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.06, 0.0), Vec2::new(0.06, 0.015), Vec2::new(0.0, 0.015)], 24, uv(tile::DARKSTEEL)),
+        &s.darksteel, Transform::from_translation(centre + Vec3::Y * top));
+    cx.put_at(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.03, 0.0), Vec2::new(0.032, 0.08), Vec2::new(0.0, 0.085)], 16, 1.0), bulb,
+        Transform::from_translation(centre + Vec3::Y * (top + 0.015)));
     cx.c.spawn((PointLight { intensity: 3_500.0, range: 3.0, color: Color::srgb(1.0, 0.68, 0.38), shadow_maps_enabled: false, ..default() },
-        Transform::from_translation(centre + Vec3::Y * 0.85)));
-    // A warm pendant above each upper lounge.
+        Transform::from_translation(centre + Vec3::Y * (top + 0.2))));
+    // Halo pendant above each upper lounge.
     if centre.y > 1.0 {
-        let shade = shapes::lathe(&[Vec2::new(0.02, 0.0), Vec2::new(0.24, 0.0), Vec2::new(0.25, 0.02), Vec2::new(0.12, 0.2), Vec2::new(0.03, 0.26)], 32, uv(tile::DARKSTEEL));
         let y = CEILING - 2.2;
-        cx.put_at(shade, &s.darksteel, Transform::from_translation(Vec3::new(centre.x, y, centre.z)));
-        cx.put(tube(&[Vec3::new(centre.x, y + 0.26, centre.z), Vec3::new(centre.x, CEILING, centre.z)], 0.006, 6, 1.0), &s.darksteel);
-        cx.put_at(shapes::annulus(Vec3::ZERO, 0.0, 0.22, 0.0, TAU, 24, 1.0), bulb,
-            Transform::from_xyz(centre.x, y + 0.01, centre.z).with_rotation(Quat::from_rotation_x(PI)));
+        let pc = Vec3::new(centre.x, y, centre.z);
+        cx.put(tube(&ring_points(pc, 0.42, 64), 0.03, 12, uv(tile::DARKSTEEL)), &s.darksteel);
+        cx.put(tube(&ring_points(pc - Vec3::Y * 0.028, 0.42, 64), 0.012, 8, 1.0), bulb);
+        for i in 0..3 {
+            let a = TAU * i as f32 / 3.0 + 0.3;
+            let p = pc + Vec3::new(a.cos(), 0.0, a.sin()) * 0.42;
+            cx.put(tube(&[p + Vec3::Y * 0.03, Vec3::new(p.x, CEILING, p.z)], 0.004, 6, 1.0), &s.darksteel);
+        }
         cx.c.spawn((SpotLight { intensity: 40_000.0, color: Color::srgb(1.0, 0.82, 0.62), range: 8.0, inner_angle: 0.45, outer_angle: 0.95,
             shadow_maps_enabled: index == 0, contact_shadows_enabled: true, ..default() },
-            Transform::from_xyz(centre.x, y - 0.02, centre.z).looking_at(Vec3::new(centre.x, 0.0, centre.z), Vec3::Z)));
+            Transform::from_xyz(centre.x, y - 0.05, centre.z).looking_at(Vec3::new(centre.x, 0.0, centre.z), Vec3::Z)));
     }
 }
 
@@ -274,27 +305,40 @@ fn bar(cx: &mut Ctx, s: &Surfaces, neon: &Neon, glass: &[Handle<StandardMaterial
         }
         k += 1;
     }
-    // Bar stools around the curve.
-    let stool = shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.21, 0.0), Vec2::new(0.22, 0.012), Vec2::new(0.2, 0.025), Vec2::new(0.03, 0.035),
-        Vec2::new(0.025, 0.06), Vec2::new(0.025, 0.66), Vec2::new(0.12, 0.68), Vec2::new(0.0, 0.69)], 28, uv(tile::STEEL));
-    let stool = cx.mesh(stool);
-    let cushion = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.17, 0.0), Vec2::new(0.195, 0.025), Vec2::new(0.2, 0.06),
-        Vec2::new(0.185, 0.09), Vec2::new(0.12, 0.105), Vec2::new(0.0, 0.11)], 32, uv(tile::LEATHER)));
-    let footring = cx.mesh(tube(&(0..=32).map(|i| { let a = TAU * i as f32 / 32.0; Vec3::new(a.cos() * 0.16, 0.0, a.sin() * 0.16) }).collect::<Vec<_>>(), 0.011, 8, 1.0));
+    // Contemporary bar stools: trumpet base, slim column, dark seat shell,
+    // leather cushion and a low curved backrest facing away from the counter.
+    let base = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.2, 0.0), Vec2::new(0.205, 0.01), Vec2::new(0.19, 0.022), Vec2::new(0.06, 0.05),
+        Vec2::new(0.024, 0.13), Vec2::new(0.022, 0.62), Vec2::new(0.07, 0.64), Vec2::new(0.0, 0.645)], 32, uv(tile::DARKSTEEL)));
+    let shell = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.19, 0.0), Vec2::new(0.205, 0.015), Vec2::new(0.205, 0.045), Vec2::new(0.0, 0.045)], 40, uv(tile::DARKSTEEL)));
+    let cushion = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.185, 0.0), Vec2::new(0.195, 0.02), Vec2::new(0.19, 0.05),
+        Vec2::new(0.16, 0.068), Vec2::new(0.0, 0.072)], 40, uv(tile::LEATHER)));
+    let backrest = cx.mesh(sweep(&rounded_rect(0.04, 0.17, 0.018, 4), &arc_frames(Vec3::ZERO, 0.185, -1.1, 1.1, 20), true, true, uv(tile::LEATHER)));
+    let footring = cx.mesh(tube(&ring_points(Vec3::ZERO, 0.17, 40), 0.01, 8, uv(tile::DARKSTEEL)));
+    let spoke = cx.mesh(tube(&[Vec3::new(0.02, 0.0, 0.0), Vec3::new(0.165, 0.0, 0.0)], 0.008, 6, 1.0));
     for &a in &BAR_STOOL_ANGLES {
         let p = c + Vec3::new(a.cos(), 0.0, a.sin()) * (r + 0.48);
-        cx.c.spawn((Mesh3d(stool.clone()), MeshMaterial3d(s.steel.clone()), Transform::from_translation(p)));
-        cx.c.spawn((Mesh3d(cushion.clone()), MeshMaterial3d(s.leather.clone()), Transform::from_translation(p + Vec3::Y * 0.68)));
+        let facing = Quat::from_rotation_y(-a);
+        cx.c.spawn((Mesh3d(base.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_translation(p)));
+        cx.c.spawn((Mesh3d(shell.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_translation(p + Vec3::Y * 0.64)));
+        cx.c.spawn((Mesh3d(cushion.clone()), MeshMaterial3d(s.leather.clone()), Transform::from_translation(p + Vec3::Y * 0.685)));
+        cx.c.spawn((Mesh3d(backrest.clone()), MeshMaterial3d(s.leather.clone()), Transform::from_translation(p + Vec3::Y * 0.72).with_rotation(facing)));
         cx.c.spawn((Mesh3d(footring.clone()), MeshMaterial3d(s.steel.clone()), Transform::from_translation(p + Vec3::Y * 0.3)));
+        for k in 0..3 {
+            cx.c.spawn((Mesh3d(spoke.clone()), MeshMaterial3d(s.steel.clone()),
+                Transform::from_translation(p + Vec3::Y * 0.3).with_rotation(Quat::from_rotation_y(TAU * k as f32 / 3.0 - a))));
+        }
     }
     // Three pendant lamps above the counter; the middle one casts shadows.
-    let shade = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.16, 0.0), Vec2::new(0.17, 0.015), Vec2::new(0.1, 0.24), Vec2::new(0.02, 0.3)], 32, uv(tile::STEEL)));
+    // Slim cylinder pendants with a warm light ring at the lower edge.
+    let shade = cx.mesh(shapes::lathe(&[Vec2::new(0.0, 0.0), Vec2::new(0.075, 0.0), Vec2::new(0.08, 0.008), Vec2::new(0.08, 0.3), Vec2::new(0.07, 0.31), Vec2::new(0.0, 0.31)], 32, uv(tile::DARKSTEEL)));
+    let lip = cx.mesh(tube(&ring_points(Vec3::ZERO, 0.08, 32), 0.005, 6, 1.0));
     for (i, &a) in [2.4f32, PI, 3.88].iter().enumerate() {
         let p = c + Vec3::new(a.cos(), 0.0, a.sin()) * (r + 0.05);
         let y = 2.35;
-        cx.c.spawn((Mesh3d(shade.clone()), MeshMaterial3d(s.steel.clone()), Transform::from_xyz(p.x, y, p.z)));
-        cx.put(tube(&[Vec3::new(p.x, y + 0.3, p.z), Vec3::new(p.x, CEILING, p.z)], 0.005, 6, 1.0), &s.darksteel);
-        cx.put_at(shapes::annulus(Vec3::ZERO, 0.0, 0.15, 0.0, TAU, 20, 1.0), bulb, Transform::from_xyz(p.x, y + 0.01, p.z).with_rotation(Quat::from_rotation_x(PI)));
+        cx.c.spawn((Mesh3d(shade.clone()), MeshMaterial3d(s.darksteel.clone()), Transform::from_xyz(p.x, y, p.z)));
+        cx.c.spawn((Mesh3d(lip.clone()), MeshMaterial3d(neon.warm.clone()), Transform::from_xyz(p.x, y, p.z)));
+        cx.put(tube(&[Vec3::new(p.x, y + 0.31, p.z), Vec3::new(p.x, CEILING, p.z)], 0.005, 6, 1.0), &s.darksteel);
+        cx.put_at(shapes::annulus(Vec3::ZERO, 0.0, 0.07, 0.0, TAU, 20, 1.0), bulb, Transform::from_xyz(p.x, y + 0.01, p.z).with_rotation(Quat::from_rotation_x(PI)));
         cx.c.spawn((SpotLight { intensity: 30_000.0, color: Color::srgb(1.0, 0.8, 0.58), range: 6.0, inner_angle: 0.35, outer_angle: 0.85,
             shadow_maps_enabled: i == 1, contact_shadows_enabled: true, ..default() },
             Transform::from_xyz(p.x, y - 0.02, p.z).looking_at(Vec3::new(p.x, 0.0, p.z), Vec3::Z)));
