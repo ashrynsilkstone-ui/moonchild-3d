@@ -115,7 +115,7 @@ Alle Teile sind prozedurale Meshes mit glatten Normalen, UVs in Metern und MikkT
 | Moving Heads mit Schatten | nein | ja | ja |
 | Warme Deckenspots im Dunst | nein | nein | ja |
 
-- **Rendering:** immer deferred, weil SSR das voraussetzt. Kamera mit HDR, Bloom (Intensität 0,07), TAA, SSAO und Contact Shadows.
+- **Rendering:** immer deferred, mit explizitem Deferred- und Depth-Prepass auch in Mittel, wo SSR ausgeschaltet ist. Kamera mit HDR, Bloom (Intensität 0,07), TAA, SSAO und Contact Shadows.
 - **Spiegelungen:**
   - Per SSR spiegeln Marmor, Terrazzo und Theke die echte Szene, aber nur bis zu einer Rauheit von 0,32 und nur, was gerade im Bild ist.
   - Außerhalb davon spiegelt eine prozedural gemalte HDR-Umgebungskarte (256² pro Seite).
