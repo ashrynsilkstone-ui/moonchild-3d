@@ -51,6 +51,10 @@ pub mod layout {
     pub const BOOTH_HALF_ANGLE: f32 = 0.575;
     pub const BOOTH_TOP: f32 = 2.08;
     pub const SPEAKERS_X: [f32; 4] = [-6.2, -5.25, 5.25, 6.2];
+    /// Truss portal behind the DJ stage: tower x (both sides), cross-beam height and depth.
+    pub const TRUSS_X: f32 = 6.9;
+    pub const TRUSS_Y: f32 = 6.55;
+    pub const TRUSS_Z: f32 = -9.3;
     pub const BAR_STOOL_ANGLES: [f32; 6] = [1.95, 2.35, 2.75, 3.55, 3.95, 4.35];
 }
 use layout::*;
@@ -153,6 +157,7 @@ static VOLUMES: LazyLock<Vec<Volume>> = LazyLock::new(|| {
     let booth: Vec<Vec2> = arc_points(Vec2::new(0.0, BOOTH_CENTER_Z), BOOTH_RADIUS - 0.05,
         std::f32::consts::FRAC_PI_2 - BOOTH_HALF_ANGLE, std::f32::consts::FRAC_PI_2 + BOOTH_HALF_ANGLE, 10);
     capsules(&booth, 0.42, STAGE_Y, BOOTH_TOP + 0.05, &mut v);
+    for &sx in &[-1.0f32, 1.0] { v.push(solid(rect(sx * TRUSS_X - 0.2, TRUSS_Z - 0.2, sx * TRUSS_X + 0.2, TRUSS_Z + 0.2), 0.0, CEILING)); }
     for &x in &SPEAKERS_X { v.push(solid(rect(x - 0.42, -8.9, x + 0.42, -8.1), STAGE_Y, 3.4)); }
     // Gallery slab, stair landing and the stairs themselves.
     v.push(solid(Shape::Gallery, GALLERY_UNDERSIDE, GALLERY_Y));
@@ -279,6 +284,12 @@ mod tests {
         let mut m = Motion::standing(); let mut p = Vec3::new(9.2, EYE, -7.0);
         walk(&mut p, &mut m, Vec3::new(-0.04, 0.0, 0.0), 80);
         assert!(p.x < STAGE_X && (feet(p) - STAGE_Y).abs() < 0.01, "{p:?}");
+    }
+    #[test]
+    fn truss_tower_blocks_the_stage_corner() {
+        let mut m = Motion::standing(); let mut p = Vec3::new(5.0, EYE + STAGE_Y, -9.3);
+        walk(&mut p, &mut m, Vec3::new(0.04, 0.0, 0.0), 80);
+        assert!(p.x < TRUSS_X - 0.2 && (feet(p) - STAGE_Y).abs() < 0.01, "{p:?}");
     }
     #[test]
     fn stairs_reach_gallery_and_descend() {

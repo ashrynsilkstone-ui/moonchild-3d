@@ -26,6 +26,7 @@ Paketnamen und Treiber bitte bei Bedarf an die eigene Installation anpassen. Vul
 | Rechte Maustaste gedrückt + Maus | Umsehen |
 | 1 / 2 / 3 | Neon / Rave / Chill |
 | 4 | Strobe (nur manuell, nie Standard) |
+| 5 / 6 / 7 | Fächer / Kegel / Chase |
 | L | Show-Licht an/aus, das warme Grundlicht bleibt an |
 | + / - | Tempo und BPM ändern |
 | Escape | Beenden |
@@ -45,6 +46,18 @@ Dieser Abschnitt ist der Qualitätsmaßstab für den Rest der Szene. Alle Teile 
 - **Geschwungenes DJ-Pult** auf einem Bogen, mit hinterleuchteter Lochblechfront. Die vorhandenen DJ-Geräte stehen darauf. Lautsprecher mit abgerundeten Gehäusen, Lochblechgitter und Membranen. Bühnenkante aus Riffelblech und Stufen an der Seite.
 
 Raum, LED-Wand, Lichtprogramme und DJ-Geräte bleiben erhalten. Die LED-Kacheln sind jetzt abgerundet und sitzen in einem Rahmen.
+
+## Halle und Bühnenrückwand (`src/hall.rs`)
+
+- **Seitenwände**: Stahlfinnen in regelmäßigen Feldern zwischen den Hallenstützen, oben hinterleuchtete Paneele (links Cyan, rechts Magenta), unten Bernstein-Paneele hinter Lochblech. Hinter der Rückbar bleibt die untere Zone frei.
+- **Umlaufend**: Sockelleiste aus dunklem Stahl, Stahlgesims unter der Decke mit warmer Voutenlinie.
+- **Eingangswand**: Finnenraster mit Bernstein- und Cyan-Feldern hinter Lochblech, dazu eine leuchtende Mondsichel als eigenes Moonchild-Motiv.
+- **Decke**: zwei große Lüftungskanäle mit Flanschen und Abhängungen sowie eine Kabeltrasse aus Lochblech.
+- **Bühnenrückwand**: links und rechts der LED-Wand je drei hinterleuchtete Akustikpaneele hinter Lochblech, Stahlrahmen, ein Sockel mit Cyan-Lichtlinie unter der LED-Wand.
+- **Traversenportal**: zwei Vierpunkt-Traversentürme und eine Quertraverse mit Diagonalverstrebung (ein gemeinsames Mesh), fünf LED-Leisten und vier Moving Heads an Abhängern. Die Türme sind in `navigation` als Hindernisse eingetragen.
+- **Bühnenfront**: acht hinterleuchtete Lochblechfelder (Magenta/Cyan im Wechsel) mit Stahllisenen.
+
+Die großen Wandfelder verwenden gedimmte Kopien der Lichtpaneel-Materialien, damit sie glimmen statt zu blenden.
 
 ## Texturen
 
@@ -75,6 +88,8 @@ python3 tools/generate_textures.py
 - **Schatten**: Die warmen Grundlicht-Spots (Decke, Ring, Nabe, Bühnenmitte, je eine Bar- und Lounge-Pendelleuchte, zwei Galerie-Downlights) werfen Schattenkarten. Zusätzlich sind Contact Shadows aktiv. Moving Heads und pulsierende Punktlichter bleiben bewusst ohne Schatten.
 - **Reflexionen**: Eine prozedural gemalte HDR-Cubemap (warme Deckenspots, dezente Neonbänder) speist `GeneratedEnvironmentMapLight`. Dadurch zeigen Glanzboden, Stahl und Leder plausible Glanzlichter. Das ist eine Näherung, **keine echte Spiegelung der Szene**.
 - **Kamera**: HDR, kontrolliertes Bloom (Intensität 0,07), TAA, SSAO und Contact Shadows.
+- **Lichtkegel**: Jeder der zehn Moving Heads (sechs am Deckenring, vier an der Bühnentraverse) zeigt einen sichtbaren Strahl. Das ist ein additiver, unbeleuchteter Kegel mit Alpha-Verlauf. Er wird pro Frame auf Öffnungswinkel, Farbe, Helligkeit und Abstand zum Zielpunkt am Boden skaliert. Es handelt sich um eine Darstellungs-Näherung, **kein volumetrischer Nebel**: Die Kegel werden nicht von Geometrie abgeschattet und erzeugen kein Streulicht. Mit L (Show-Licht aus) verschwinden sie.
+- **Lichtprogramme**: 1 Neon, 2 Rave, 3 Chill und 4 Strobe wie bisher. Neu sind 5 **Fächer** (eine Strahlenlinie fächert auf und schwenkt von vorn nach hinten), 6 **Kegel** (alle Strahlen auf einem rotierenden Kreis, der sich weitet und zusammenzieht) und 7 **Chase** (feste Positionen, die Helligkeit springt im BPM-Takt von Kopf zu Kopf). Jedes Programm hat eine eigene Farbpalette. Das warme Grundlicht bleibt in allen Programmen gleich.
 - **Strobe** ist nie Standard. Ein Test prüft den Startmodus.
 
 ## Bewegung und Kollision
@@ -98,9 +113,20 @@ Am 6. November 2026 auf CachyOS (Mesa 26.2.6, RADV) mit AMD Radeon RX 9070 XT:
 
 Nicht geprüft: Steuerung per echter Tastatur und Maus über längere Zeit, andere Auflösungen, andere GPUs.
 
+## Prüfungen zum Hallenausbau und zu den Lichtprogrammen (16. November 2026)
+
+In einer Linux-Cloud-Umgebung ohne Grafikkarte (Rust 1.97.1, Mesa 25.2.8 lavapipe, also Software-Vulkan, unter Xvfb):
+
+- `cargo build --release`: erfolgreich, ohne Compiler-Warnungen.
+- `cargo test --release`: 14 Tests bestanden. Neu sind ein Test, dass der Traversenturm die Bühnenecke blockiert, und einer, dass jedes Lichtprogramm gültige Bodenziele liefert.
+- Screenshot-Rundgang im laufenden Spiel: `MOONCHILD_SHOT_FAST=1 MOONCHILD_SHOTS=<Ordner> cargo run --release` mit allen 19 Ansichten, ohne Panic. Neu im Repository sind `docs/screenshots/14_*` bis `19_*`. Sie stammen aus diesem Software-Rendering. Die übrigen Bilder sind unverändert die vom 6. November.
+- `MOONCHILD_SHOT_FAST` verkürzt nur die Wartezeiten für langsame Software-Renderer. Die Framezeiten aus diesem Lauf (etwa 0,5 fps auf der CPU) sagen nichts über echte Hardware aus.
+
+Nicht geprüft: Lauf und Bildrate auf der RX 9070 XT, echte Tastatur- und Mausbedienung der neuen Tasten 5 bis 7.
+
 ## Grenzen und weitere Arbeit
 
-Die restliche Halle ist nur teilweise auf den neuen Stand gebracht: Wände, Bühnenkörper und die Rückwand der Bühne bestehen noch aus einfachen Quadern. Weitere offene Punkte: keine Audiosynchronisierung, keine Sound-Dateien, keine volumetrischen Lichtkegel, keine NPCs, kein Multiplayer. Reflexionen sind eine Umgebungs-Näherung, kein Raytracing und kein SSR.
+Wände, Decke und Bühnenrückwand haben jetzt Gliederung und Details. Der Wandkern und der Bühnenkörper selbst bleiben einfache Quader, und die Seitenflächen der Bühne sind noch schlicht. Die Lichtkegel sind additive Meshes, kein volumetrischer Nebel. Weitere offene Punkte: keine Audiosynchronisierung, keine Sound-Dateien, keine NPCs, kein Multiplayer. Reflexionen sind eine Umgebungs-Näherung, kein Raytracing und kein SSR.
 
 ## Asset-Herkunft
 
