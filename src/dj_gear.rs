@@ -1,5 +1,6 @@
 //! Original Moonchild DJ equipment: textured faceplates plus raised hardware.
 use bevy::prelude::*;
+use crate::shapes;
 
 fn object(c: &mut Commands, meshes: &mut Assets<Mesh>, shape: impl Into<Mesh>, material: Handle<StandardMaterial>, transform: Transform) {
     c.spawn((Mesh3d(meshes.add(shape)), MeshMaterial3d(material), transform));
@@ -21,21 +22,24 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
     let mixer_mesh=meshes.add(Plane3d::default().mesh().size(1.20*SCALE,0.86*SCALE));
     let wheel_ring=meshes.add(Torus::new(0.229*SCALE,0.240*SCALE));
     let knob=meshes.add(Cylinder::new(0.023*SCALE,0.035*SCALE));
+    let knob_bezel=meshes.add(Torus::new(0.025*SCALE,0.030*SCALE));
+    let wheel_detail=meshes.add(Torus::new(0.214*SCALE,0.217*SCALE));
     // Instruments rest on top of the curved booth, rather than floating at stage height.
     let center_z=-7.80;
     for &center_x in &[-0.52,0.52] {
-        object(c,meshes,Cuboid::new(1.53*SCALE,0.16*SCALE,0.91*SCALE),casing.clone(),Transform::from_xyz(center_x,2.112,center_z));
+        object(c,meshes,shapes::rounded_box(Vec3::new(1.53*SCALE,0.16*SCALE,0.91*SCALE),0.016,8,1.0).build(),casing.clone(),Transform::from_xyz(center_x,2.112,center_z));
         c.spawn((Mesh3d(deck_mesh.clone()),MeshMaterial3d(deck_face.clone()),Transform::from_xyz(center_x,2.145,center_z)));
         let wheel_x=center_x+(510.0/1536.0-0.5)*1.50*SCALE;
         let wheel_z=center_z+(550.0/900.0-0.5)*0.88*SCALE;
         c.spawn((Mesh3d(wheel_ring.clone()),MeshMaterial3d(metal.clone()),Transform::from_xyz(wheel_x,2.151,wheel_z)));
+        c.spawn((Mesh3d(wheel_detail.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(wheel_x,2.149,wheel_z)));
         for &(x,y) in &[(908.0,735.0),(1015.0,735.0)] {
             let px=center_x+(x/1536.0-0.5)*1.50*SCALE;
             let pz=center_z+(y/900.0-0.5)*0.88*SCALE;
             c.spawn((Mesh3d(knob.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(px,2.152,pz)));
         }
     }
-    object(c,meshes,Cuboid::new(1.23*SCALE,0.16*SCALE,0.89*SCALE),casing,Transform::from_xyz(0.0,2.112,center_z));
+    object(c,meshes,shapes::rounded_box(Vec3::new(1.23*SCALE,0.16*SCALE,0.89*SCALE),0.014,8,1.0).build(),casing,Transform::from_xyz(0.0,2.112,center_z));
     c.spawn((Mesh3d(mixer_mesh),MeshMaterial3d(mixer_face),Transform::from_xyz(0.0,2.145,center_z)));
     // Raised gain/EQ/filter knobs and the four channel fader caps.
     for &x in &[230.0,410.0,590.0,770.0] {
@@ -43,10 +47,12 @@ pub fn spawn(c: &mut Commands, meshes: &mut Assets<Mesh>, materials: &mut Assets
             let px=(x/1200.0-0.5)*1.20*SCALE;
             let pz=center_z+(y/860.0-0.5)*0.86*SCALE;
             c.spawn((Mesh3d(knob.clone()),MeshMaterial3d(rubber.clone()),Transform::from_xyz(px,2.152,pz)));
+            c.spawn((Mesh3d(knob_bezel.clone()),MeshMaterial3d(metal.clone()),Transform::from_xyz(px,2.146,pz)));
         }
     }
     for (i,x) in [230.0,410.0,590.0,770.0].iter().enumerate() {
         let y=715.0-(i%3) as f32*20.0;
-        object(c,meshes,Cuboid::new(0.066*SCALE,0.025*SCALE,0.029*SCALE),metal.clone(),Transform::from_xyz((x/1200.0-0.5)*1.20*SCALE,2.152,center_z+(y/860.0-0.5)*0.86*SCALE));
+        object(c,meshes,shapes::rounded_box(Vec3::new(0.066*SCALE,0.025*SCALE,0.029*SCALE),0.003,4,1.0).build(),metal.clone(),Transform::from_xyz((x/1200.0-0.5)*1.20*SCALE,2.152,center_z+(y/860.0-0.5)*0.86*SCALE));
     }
 }
+

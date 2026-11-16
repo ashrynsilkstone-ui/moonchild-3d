@@ -23,15 +23,16 @@ jobs:
       - name: Capture the running game
         run: |
           mkdir -p /tmp/moonchild-shots
-          export BEVY_ASSET_ROOT="$PWD" MOONCHILD_SHOTS=/tmp/moonchild-shots MOONCHILD_SHOT_FILTER=01_entrance,03_bar,05_ceiling_ring,14_stage_backwall MOONCHILD_RESOLUTION=960x600 MOONCHILD_SHOT_FAST=1 MOONCHILD_QUALITY=mittel
+          export BEVY_ASSET_ROOT="$PWD" MOONCHILD_SHOTS=/tmp/moonchild-shots MOONCHILD_SHOT_FILTER=01_entrance,03_bar,05_ceiling_ring,11_dj_gear_close,14_stage_backwall MOONCHILD_RESOLUTION=960x600 MOONCHILD_SHOT_FAST=1 MOONCHILD_QUALITY=mittel
           timeout 420s xvfb-run -a -s '-screen 0 960x600x24' target/debug/moonchild-3d > /tmp/moonchild.log 2>&1 || { cat /tmp/moonchild.log; exit 1; }
           cat /tmp/moonchild.log
           if grep -E 'Path not found:|panicked at' /tmp/moonchild.log; then exit 1; fi
           test -s /tmp/moonchild-shots/01_entrance.png
           test -s /tmp/moonchild-shots/03_bar.png
           test -s /tmp/moonchild-shots/05_ceiling_ring.png
+          test -s /tmp/moonchild-shots/11_dj_gear_close.png
           test -s /tmp/moonchild-shots/14_stage_backwall.png
-          for shot in 01_entrance 03_bar 05_ceiling_ring 14_stage_backwall; do
+          for shot in 01_entrance 03_bar 05_ceiling_ring 11_dj_gear_close 14_stage_backwall; do
             /usr/bin/python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]); im.thumbnail((960,600)); im.convert("RGB").save(sys.argv[2],quality=75)' "/tmp/moonchild-shots/$shot.png" "/tmp/$shot.jpg"
             echo "GAME_SCREENSHOT_BEGIN $shot"
             base64 -w0 "/tmp/$shot.jpg"
